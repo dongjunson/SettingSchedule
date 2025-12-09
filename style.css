@@ -135,6 +135,7 @@ body {
     border-bottom: 1px solid var(--border-color);
     transition: all 0.2s ease;
     align-items: center;
+    position: relative;
 }
 
 .table-row:last-child {
@@ -144,6 +145,31 @@ body {
 .table-row:hover {
     background: rgba(255, 255, 255, 0.02);
     transform: translateX(4px);
+}
+
+/* 완료된 행 스타일링 - R&D와 현장팀 모두 완료된 경우 */
+.table-row.completed,
+.table-row:has(.col-tech.active):has(.col-field.active) {
+    background: rgba(0, 230, 118, 0.05);
+    border-left: 3px solid var(--accent-green);
+    padding-left: calc(1.2rem - 3px);
+}
+
+.table-row.completed:hover,
+.table-row:has(.col-tech.active):has(.col-field.active):hover {
+    background: rgba(0, 230, 118, 0.08);
+}
+
+.table-row.completed .col-task,
+.table-row:has(.col-tech.active):has(.col-field.active) .col-task {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.table-row.completed .col-step,
+.table-row:has(.col-tech.active):has(.col-field.active) .col-step {
+    color: var(--accent-green);
+    font-weight: 700;
 }
 
 .col {
@@ -222,6 +248,26 @@ span {
 
 .active span {
     color: #fff;
+    font-weight: 500;
+}
+
+/* 완료된 행의 active 상태 강조 */
+.table-row.completed .active,
+.table-row:has(.col-tech.active):has(.col-field.active) .active {
+    color: var(--accent-green);
+}
+
+.table-row.completed .active i,
+.table-row:has(.col-tech.active):has(.col-field.active) .active i {
+    filter: drop-shadow(0 0 12px var(--glow-green));
+    transform: scale(1.1);
+}
+
+.table-row.completed .active span,
+.table-row:has(.col-tech.active):has(.col-field.active) .active span {
+    color: var(--accent-green);
+    font-weight: 600;
+    text-shadow: 0 0 8px rgba(0, 230, 118, 0.3);
 }
 
 /* Animations */
@@ -320,10 +366,10 @@ span {
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    padding: 1rem;
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .checklist-item {
@@ -334,7 +380,7 @@ span {
     border: 1px solid transparent;
     border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     gap: 1rem;
     position: relative;
 }
@@ -343,6 +389,25 @@ span {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 완료된 항목 스타일 */
+.checklist-item input:checked ~ .item-content {
+    position: relative;
+}
+
+.checklist-item:has(input:checked) {
+    background: rgba(0, 230, 118, 0.08);
+    border-left: 3px solid var(--accent-green);
+    padding-left: calc(1.2rem - 3px);
+    box-shadow: 0 2px 8px rgba(0, 230, 118, 0.1);
+}
+
+.checklist-item:has(input:checked):hover {
+    background: rgba(0, 230, 118, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 230, 118, 0.15);
 }
 
 .checklist-item input[type="checkbox"] {
@@ -354,23 +419,31 @@ span {
 }
 
 .checkbox-custom {
-    min-width: 24px;
-    height: 24px;
+    min-width: 28px;
+    height: 28px;
     border: 2px solid var(--text-secondary);
-    border-radius: 6px;
+    border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     color: transparent;
     margin-top: 2px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .checklist-item input:checked ~ .checkbox-custom {
     background-color: var(--accent-green);
     border-color: var(--accent-green);
     color: #000;
-    box-shadow: 0 0 10px var(--glow-green);
+    box-shadow: 0 0 16px var(--glow-green), 0 4px 12px rgba(0, 230, 118, 0.3);
+    transform: scale(1.05);
+}
+
+.checklist-item input:checked ~ .checkbox-custom i {
+    font-size: 1.1rem;
+    font-weight: 700;
 }
 
 .item-content {
@@ -380,26 +453,33 @@ span {
 }
 
 .item-number {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-family: 'Space Mono', monospace;
     font-weight: 700;
     color: var(--accent-green);
     opacity: 0.8;
+    transition: all 0.3s ease;
+    letter-spacing: 0.05em;
 }
 
 .item-text {
     font-size: 1rem;
-    line-height: 1.5;
+    line-height: 1.6;
     color: var(--text-secondary);
-    transition: color 0.2s;
+    transition: all 0.3s ease;
+    font-weight: 400;
 }
 
 .checklist-item input:checked ~ .item-content .item-text {
     color: var(--text-primary);
+    font-weight: 500;
 }
 
 .checklist-item input:checked ~ .item-content .item-number {
     opacity: 1;
+    color: var(--accent-green);
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(0, 230, 118, 0.3);
 }
 
 /* Navigation Button */
