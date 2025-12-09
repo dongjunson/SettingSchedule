@@ -6,8 +6,10 @@
     --text-secondary: #8b92a5;
     --accent-green: #00e676;
     --accent-red: #ff3d5e;
+    --accent-orange: #ff9800;
     --glow-green: rgba(0, 230, 118, 0.4);
     --glow-red: rgba(255, 61, 94, 0.4);
+    --glow-orange: rgba(255, 152, 0, 0.4);
     --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
 }
 
@@ -187,6 +189,29 @@ i {
 
 .inactive i {
     filter: drop-shadow(0 0 5px var(--glow-red));
+}
+
+.working {
+    color: var(--accent-orange);
+}
+
+.working i {
+    filter: drop-shadow(0 0 8px var(--glow-orange));
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.working span {
+    color: var(--accent-orange);
+    font-weight: 500;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
 }
 
 span {
