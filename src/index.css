@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Fira+Code:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 블루 계열 밝은 색상 팔레트 */
+    --background: rgb(240, 245, 255);
+    --foreground: rgb(15, 23, 42);
+    --card: rgb(255, 255, 255);
+    --card-foreground: rgb(15, 23, 42);
+    --popover: rgb(255, 255, 255);
+    --popover-foreground: rgb(15, 23, 42);
+    --primary: rgb(59, 130, 246);
+    --primary-foreground: rgb(255, 255, 255);
+    --secondary: rgb(148, 163, 184);
+    --secondary-foreground: rgb(15, 23, 42);
+    --muted: rgb(241, 245, 249);
+    --muted-foreground: rgb(100, 116, 139);
+    --accent: rgb(37, 99, 235);
+    --accent-foreground: rgb(255, 255, 255);
+    --destructive: rgb(239, 68, 68);
+    --destructive-foreground: rgb(255, 255, 255);
+    --border: rgb(203, 213, 225);
+    --input: rgb(203, 213, 225);
+    --ring: rgb(59, 130, 246);
+    --chart-1: rgb(59, 130, 246);
+    --chart-2: rgb(37, 99, 235);
+    --chart-3: rgb(96, 165, 250);
+    --chart-4: rgb(148, 163, 184);
+    --chart-5: rgb(100, 116, 139);
+    --sidebar: rgb(255, 255, 255);
+    --sidebar-foreground: rgb(15, 23, 42);
+    --sidebar-primary: rgb(59, 130, 246);
+    --sidebar-primary-foreground: rgb(255, 255, 255);
+    --sidebar-accent: rgb(37, 99, 235);
+    --sidebar-accent-foreground: rgb(255, 255, 255);
+    --sidebar-border: rgb(226, 232, 240);
+    --sidebar-ring: rgb(59, 130, 246);
+    --font-sans: Oxanium, sans-serif;
+    --font-serif: Merriweather, serif;
+    --font-mono: Fira Code, monospace;
+    --radius: 0.3rem;
+    --shadow-x: 0px;
+    --shadow-y: 2px;
+    --shadow-blur: 3px;
+    --shadow-spread: 0px;
+    --shadow-opacity: 0.18;
+    --shadow-color: hsl(0 0% 5%);
+    --shadow-2xs: 0px 2px 3px 0px hsl(0 0% 5% / 0.09);
+    --shadow-xs: 0px 2px 3px 0px hsl(0 0% 5% / 0.09);
+    --shadow-sm: 0px 2px 3px 0px hsl(0 0% 5% / 0.18), 0px 1px 2px -1px hsl(0 0% 5% / 0.18);
+    --shadow: 0px 2px 3px 0px hsl(0 0% 5% / 0.18), 0px 1px 2px -1px hsl(0 0% 5% / 0.18);
+    --shadow-md: 0px 2px 3px 0px hsl(0 0% 5% / 0.18), 0px 2px 4px -1px hsl(0 0% 5% / 0.18);
+    --shadow-lg: 0px 2px 3px 0px hsl(0 0% 5% / 0.18), 0px 4px 6px -1px hsl(0 0% 5% / 0.18);
+    --shadow-xl: 0px 2px 3px 0px hsl(0 0% 5% / 0.18), 0px 8px 10px -1px hsl(0 0% 5% / 0.18);
+    --shadow-2xl: 0px 2px 3px 0px hsl(0 0% 5% / 0.45);
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.1) 0px, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  
+  /* 테이블 border 개선 */
+  .border-border {
+    border-color: var(--border);
+  }
+  
+  /* 카드 호버 효과 */
+  .hover\:shadow-xl:hover {
+    transform: translateY(-2px);
+  }
+  
+  /* 강제로 배경색 적용 */
+  #root {
+    background-color: var(--background);
+    color: var(--foreground);
+    min-height: 100vh;
+  }
+}
