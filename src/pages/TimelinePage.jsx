@@ -1,33 +1,65 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { ArrowLeft, Check, X, Clock, ListChecks } from 'lucide-react'
-import { getSiteData, updateTimelineItem, calculateProgress } from '../lib/storage'
+import { useStore } from '../lib/store'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Progress } from '../components/ui/progress'
 import { ProgressPieChart } from '../components/ProgressChart'
 import { cn } from '../lib/utils'
 
 export default function TimelinePage() {
   const { siteId } = useParams()
   const navigate = useNavigate()
-  const [site, setSite] = useState(null)
-  const [progress, setProgress] = useState({ timeline: 0, checklist: 0, overall: 0 })
+  
+  // zustand 스토어에서 상태와 함수 가져오기
+  const site = useStore((state) => state.sites.find(s => s.id === siteId))
+  const loading = useStore((state) => state.loading)
+  const loadSite = useStore((state) => state.loadSite)
+  const updateTimelineItem = useStore((state) => state.updateTimelineItem)
+  const calculateProgress = useStore((state) => state.calculateProgress)
 
   useEffect(() => {
-    const siteData = getSiteData(siteId)
-    if (siteData) {
-      setSite(siteData)
-      setProgress(calculateProgress(siteId))
+    const loadSiteData = async () => {
+      try {
+        // 새로고침 시마다 항상 API에서 최신 데이터 가져오기
+        await loadSite(siteId, true)
+      } catch (error) {
+        console.error('Failed to load site data:', error)
+      }
     }
-  }, [siteId])
+    // 페이지 마운트 시 (새로고침 포함) 항상 API 호출
+    loadSiteData()
+  }, [siteId, loadSite])
 
-  const handleStatusChange = (itemId, type, newStatus) => {
-    const updates = type === 'rnd' ? { rnd: newStatus } : { field: newStatus }
-    updateTimelineItem(siteId, itemId, updates)
-    const updatedSite = getSiteData(siteId)
-    setSite(updatedSite)
-    setProgress(calculateProgress(siteId))
+  const getNextStatus = (currentStatus) => {
+    // pending -> working -> completed -> pending 순환
+    const statusOrder = ['pending', 'working', 'completed']
+    const currentIndex = statusOrder.indexOf(currentStatus || 'pending')
+    return statusOrder[(currentIndex + 1) % statusOrder.length]
+  }
+
+  const handleStatusChange = async (itemId, currentStatus) => {
+    const nextStatus = getNextStatus(currentStatus)
+    const updates = {
+      status: nextStatus,
+      // completed 상태로 변경될 때만 completedAt 저장
+      completedAt: nextStatus === 'completed' ? new Date().toISOString() : null
+    }
+    // zustand 스토어를 통해 업데이트 (자동으로 리렌더링됨)
+    await updateTimelineItem(siteId, itemId, updates)
+  }
+
+  // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
+  const progress = site ? calculateProgress(siteId) : { timeline: 0, checklist: 0, overall: 0 }
+  
+  const formatCompletedTime = (completedAt) => {
+    if (!completedAt) return null
+    const date = new Date(completedAt)
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${month}/${day}`
   }
 
   const getStatusIcon = (status) => {
@@ -43,22 +75,12 @@ export default function TimelinePage() {
     }
   }
 
-  const getStatusColor = (status, itemStatus = null) => {
-    // If item has specific status (completed/working), use that color
-    if (itemStatus === 'both-completed') {
-      return 'bg-green-500 text-white hover:bg-green-600 hover:text-white shadow-md shadow-green-500/30'
-    } else if (itemStatus === 'one-completed') {
-      return 'bg-blue-400 text-white hover:bg-blue-500 hover:text-white shadow-md shadow-blue-400/30'
-    } else if (itemStatus === 'working') {
-      return 'bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground shadow-md shadow-accent/20'
-    }
-    
-    // Default status-based colors
+  const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
-        return 'bg-blue-400 text-white hover:bg-blue-500 hover:text-white shadow-md shadow-blue-400/30'
+        return 'bg-blue-500 text-white hover:bg-blue-600 hover:text-white shadow-md shadow-blue-500/30'
       case 'working':
-        return 'bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground shadow-md shadow-accent/20'
+        return 'bg-gray-500 text-white hover:bg-gray-600 hover:text-white shadow-md shadow-gray-500/30'
       case 'pending':
         return 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground border border-border/60'
       default:
@@ -66,10 +88,15 @@ export default function TimelinePage() {
     }
   }
 
-  const getNextStatus = (currentStatus) => {
-    const statusOrder = ['pending', 'working', 'completed']
-    const currentIndex = statusOrder.indexOf(currentStatus)
-    return statusOrder[(currentIndex + 1) % statusOrder.length]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!site) {
@@ -169,7 +196,7 @@ export default function TimelinePage() {
         </div>
 
         {/* Horizontal Timeline */}
-        <div className="space-y-8">
+        <div className="space-y-12">
           {sections.map((section, sectionIndex) => {
             const sectionItems = site.timeline.filter(item => item.section === section)
             // 한 행에 표시할 항목 수 (반응형)
@@ -178,7 +205,7 @@ export default function TimelinePage() {
             return (
               <div key={section} className="space-y-6">
                 {/* Section Header */}
-                <div className="mb-6">
+                <div className="mb-16">
                   <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold shadow-md shadow-primary/20 border-2 border-primary/30">
                       {sectionIndex + 1}
@@ -196,47 +223,40 @@ export default function TimelinePage() {
                     
                     return (
                       <div key={rowIndex} className="relative">
-                        {/* Horizontal Timeline Line with gradient on both sides */}
-                        <div className="absolute top-8 left-0 right-0 h-0.5 z-0">
-                          <div className="h-full bg-gradient-to-r from-transparent via-primary/70 to-transparent"></div>
+                        {/* Horizontal Timeline Line with gradient on both sides - centered on badge */}
+                        <div className="absolute top-0 left-0 right-0 h-1 z-0">
+                          <div className="h-full bg-gradient-to-r from-transparent via-primary via-primary/90 to-transparent"></div>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
                           {rowItems.map((item, itemIndex) => {
                             const isLastInRow = itemIndex === rowItems.length - 1
-                            const isCompleted = item.rnd === 'completed' && item.field === 'completed'
-                            const isFirstInRow = itemIndex === 0
-                            const oneCompleted = (item.rnd === 'completed' || item.field === 'completed') && !isCompleted
-                            const isWorking = (item.rnd === 'working' || item.field === 'working') && !isCompleted && !oneCompleted
-                            
-                            // Determine item status for button colors
-                            let itemStatus = null
-                            if (isCompleted) {
-                              itemStatus = 'both-completed'
-                            } else if (oneCompleted) {
-                              itemStatus = 'one-completed'
-                            } else if (isWorking) {
-                              itemStatus = 'working'
+                            // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
+                            let role = (item.role || 'both').toString().trim().toLowerCase()
+                            // 유효하지 않은 role 값은 'both'로 설정
+                            if (role !== 'rnd' && role !== 'field' && role !== 'both') {
+                              console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item)
+                              role = 'both'
                             }
+                            
+                            // status 기반으로 상태 판단 (단순화)
+                            const currentStatus = item.status || 'pending'
+                            const isCompleted = currentStatus === 'completed'
+                            const isWorking = currentStatus === 'working'
+                            
+                            const isFirstInRow = itemIndex === 0
                             
                             return (
                               <div key={item.id} className="relative flex flex-col items-center h-full">
-                                {/* Vertical connecting line from previous row's first item to current row's first item */}
-                                {rowIndex > 0 && isFirstInRow && (
-                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-16 bg-gradient-to-b from-primary/70 via-primary/50 to-primary/70 z-0" style={{ top: '-4rem' }}></div>
-                                )}
-                                
                                 {/* Timeline Node - centered on horizontal line */}
                                 <div className="relative z-10 mb-6" style={{ marginTop: '-2rem' }}>
                                   <div className={cn(
                                     "flex items-center justify-center w-16 h-16 rounded-full font-bold text-lg shadow-lg border-2 transition-all",
                                     isCompleted
-                                      ? "bg-green-500 text-white border-green-600 shadow-green-500/40"
-                                      : oneCompleted
-                                      ? "bg-blue-400 text-white border-blue-500 shadow-blue-400/30"
+                                      ? "bg-blue-500 text-white border-blue-600 shadow-blue-500/40"
                                       : isWorking
-                                      ? "bg-accent text-accent-foreground border-accent shadow-accent/30"
-                                      : "bg-muted text-muted-foreground border-border/60"
+                                      ? "bg-gray-500 text-white border-gray-600 shadow-gray-500/30"
+                                      : "bg-white text-foreground border-border/60 shadow-md"
                                   )}>
                                     {item.step}
                                   </div>
@@ -245,54 +265,69 @@ export default function TimelinePage() {
                                 {/* Content Card */}
                                 <div className="w-full pt-6">
                                   <Card className={cn(
-                                    "transition-all shadow-md hover:shadow-lg h-full flex flex-col",
+                                    "transition-all shadow-md hover:shadow-lg flex flex-col relative",
                                     isCompleted
-                                      ? "border-2 border-green-500/70 bg-green-50/60 hover:border-green-500 hover:bg-green-50 hover:shadow-green-500/25"
-                                      : oneCompleted
-                                      ? "border-2 border-blue-400/60 bg-blue-50/50 hover:border-blue-400 hover:bg-blue-50/70 hover:shadow-blue-400/20"
+                                      ? "border-2 border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25"
                                       : isWorking
-                                      ? "border border-accent/60 bg-accent/10 hover:border-accent hover:bg-accent/15 hover:shadow-accent/10"
-                                      : "border border-border/60 hover:border-primary/40 bg-card hover:bg-card/95 hover:shadow-primary/10"
-                                  )}>
-                                    <CardContent className="p-6 flex flex-col flex-1 min-h-[220px]">
+                                      ? "border-2 border-gray-300 bg-gray-100 hover:border-gray-400 hover:bg-gray-200 hover:shadow-gray-300/20"
+                                      : "border-2 border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10"
+                                  )} style={{ height: '170px' }}>
+                                    {/* Role Badges - 우측 상단 */}
+                                    <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+                                      {/* R&D 뱃지: role이 'rnd'이거나 'both'일 때만 표시 */}
+                                      {role === 'rnd' && (
+                                        <div className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                                          R&D
+                                        </div>
+                                      )}
+                                      {/* 현장팀 뱃지: role이 'field'이거나 'both'일 때만 표시 */}
+                                      {role === 'field' && (
+                                        <div className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                                          현장팀
+                                        </div>
+                                      )}
+                                      {/* Both 뱃지: role이 'both'일 때만 두 뱃지 모두 표시 */}
+                                      {role === 'both' && (
+                                        <>
+                                          <div className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                                            R&D
+                                          </div>
+                                          <div className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                                            현장팀
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                    
+                                    <CardContent className="p-4 flex flex-col flex-1 h-full">
                                       <h3 className={cn(
-                                        "font-semibold text-lg mb-5 leading-tight text-center min-h-[5rem] flex items-center justify-center",
+                                        "font-semibold text-lg mb-3 leading-snug text-center flex items-center justify-center flex-1",
                                         isCompleted
-                                          ? "text-green-800"
-                                          : oneCompleted
-                                          ? "text-blue-700"
+                                          ? "text-blue-500"
                                           : isWorking
-                                          ? "text-accent-foreground"
+                                          ? "text-gray-700"
                                           : "text-foreground"
                                       )}>
                                         {item.task}
                                       </h3>
                                       
-                                      <div className="space-y-3 mt-auto">
+                                      <div className="mt-0 relative">
                                         <button
-                                          onClick={() => handleStatusChange(item.id, 'rnd', getNextStatus(item.rnd))}
+                                          onClick={() => handleStatusChange(item.id, currentStatus)}
                                           className={cn(
-                                            "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all hover:scale-[1.02] min-h-[36px]",
-                                            getStatusColor(item.rnd, itemStatus)
+                                            "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all min-h-[36px]",
+                                            getStatusColor(currentStatus)
                                           )}
                                         >
-                                          {getStatusIcon(item.rnd)}
+                                          {getStatusIcon(currentStatus)}
                                           <span className="text-xs">
-                                            {item.rnd === 'completed' ? '완료' : item.rnd === 'working' ? '작업중' : '대기'}
+                                            {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
                                           </span>
-                                        </button>
-                                        
-                                        <button
-                                          onClick={() => handleStatusChange(item.id, 'field', getNextStatus(item.field))}
-                                          className={cn(
-                                            "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all hover:scale-[1.02] min-h-[36px]",
-                                            getStatusColor(item.field, itemStatus)
+                                          {isCompleted && item.completedAt && (
+                                            <span className="text-[11px] ml-1 opacity-90">
+                                              ({formatCompletedTime(item.completedAt)})
+                                            </span>
                                           )}
-                                        >
-                                          {getStatusIcon(item.field)}
-                                          <span className="text-xs">
-                                            {item.field === 'completed' ? '완료' : item.field === 'working' ? '작업중' : '대기'}
-                                          </span>
                                         </button>
                                       </div>
                                     </CardContent>

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { ArrowLeft, Check } from 'lucide-react'
-import { getSiteData, updateChecklistItem, calculateProgress } from '../lib/storage'
+import { useStore } from '../lib/store'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ProgressPieChart } from '../components/ProgressChart'
@@ -11,22 +11,43 @@ import { cn } from '../lib/utils'
 export default function ChecklistPage() {
   const { siteId } = useParams()
   const navigate = useNavigate()
-  const [site, setSite] = useState(null)
-  const [progress, setProgress] = useState({ timeline: 0, checklist: 0, overall: 0 })
+  
+  // zustand 스토어에서 상태와 함수 가져오기
+  const site = useStore((state) => state.sites.find(s => s.id === siteId))
+  const loading = useStore((state) => state.loading)
+  const loadSite = useStore((state) => state.loadSite)
+  const updateChecklistItem = useStore((state) => state.updateChecklistItem)
+  const calculateProgress = useStore((state) => state.calculateProgress)
 
   useEffect(() => {
-    const siteData = getSiteData(siteId)
-    if (siteData) {
-      setSite(siteData)
-      setProgress(calculateProgress(siteId))
+    const loadSiteData = async () => {
+      try {
+        // 새로고침 시마다 항상 API에서 최신 데이터 가져오기
+        await loadSite(siteId, true)
+      } catch (error) {
+        console.error('Failed to load site data:', error)
+      }
     }
-  }, [siteId])
+    // 페이지 마운트 시 (새로고침 포함) 항상 API 호출
+    loadSiteData()
+  }, [siteId, loadSite])
 
-  const handleCheckboxChange = (itemId, checked) => {
-    updateChecklistItem(siteId, itemId, checked)
-    const updatedSite = getSiteData(siteId)
-    setSite(updatedSite)
-    setProgress(calculateProgress(siteId))
+  const handleCheckboxChange = async (itemId, checked) => {
+    // zustand 스토어를 통해 업데이트 (자동으로 리렌더링됨)
+    await updateChecklistItem(siteId, itemId, checked)
+  }
+
+  // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
+  const progress = site ? calculateProgress(siteId) : { timeline: 0, checklist: 0, overall: 0 }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!site) {
@@ -86,8 +107,10 @@ export default function ChecklistPage() {
                 <label
                   key={item.id}
                   className={cn(
-                    "flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-all hover:bg-muted/30",
-                    item.checked ? "border-primary/25 bg-primary/5" : "border-border/60"
+                    "flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all shadow-md hover:shadow-lg",
+                    item.checked 
+                      ? "border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25" 
+                      : "border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10"
                   )}
                 >
                   <div className="mt-1">
@@ -98,14 +121,22 @@ export default function ChecklistPage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-semibold text-muted-foreground">
+                      <span className={cn(
+                        "text-sm font-semibold",
+                        item.checked ? "text-blue-500" : "text-muted-foreground"
+                      )}>
                         No. {String(item.id).padStart(2, '0')}
                       </span>
                       {item.checked && (
-                        <Check className="h-4 w-4 text-primary" />
+                        <Check className="h-4 w-4 text-blue-500" />
                       )}
                     </div>
-                    <p className="text-foreground leading-relaxed">{item.text}</p>
+                    <p className={cn(
+                      "leading-relaxed",
+                      item.checked ? "text-blue-500" : "text-foreground"
+                    )}>
+                      {item.text}
+                    </p>
                   </div>
                 </label>
               ))}

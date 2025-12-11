@@ -1,22 +1,40 @@
 import { useNavigate } from 'react-router-dom'
 import { Building2, ArrowRight } from 'lucide-react'
-import { loadData, calculateProgress } from '../lib/storage'
-import { useEffect, useState } from 'react'
+import { useStore } from '../lib/store'
+import { useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { ProgressPieChart } from '../components/ProgressChart'
 
 export default function SiteSelection() {
   const navigate = useNavigate()
-  const [sites, setSites] = useState([])
+  
+  // zustand 스토어에서 상태와 함수 가져오기
+  const sites = useStore((state) => state.sites)
+  const loading = useStore((state) => state.loading)
+  const loadAllSites = useStore((state) => state.loadAllSites)
+  const calculateProgress = useStore((state) => state.calculateProgress)
 
   useEffect(() => {
-    const data = loadData()
-    setSites(data.sites.map(site => ({
+    const loadSitesData = async () => {
+      try {
+        // 새로고침 시마다 항상 API에서 최신 데이터 가져오기
+        await loadAllSites(true)
+      } catch (error) {
+        console.error('Failed to load sites data:', error)
+      }
+    }
+    // 페이지 마운트 시 (새로고침 포함) 항상 API 호출
+    loadSitesData()
+  }, [loadAllSites])
+
+  // sites와 진행도 계산을 메모이제이션
+  const sitesWithProgress = useMemo(() => {
+    return sites.map(site => ({
       ...site,
       progress: calculateProgress(site.id),
-    })))
-  }, [])
+    }))
+  }, [sites, calculateProgress])
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -26,8 +44,13 @@ export default function SiteSelection() {
           <p className="text-muted-foreground">사업소를 선택하여 타임라인과 체크리스트를 확인하세요</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sites.map((site) => (
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">데이터를 불러오는 중...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sitesWithProgress.map((site) => (
             <Card key={site.id} className="hover:shadow-xl hover:shadow-primary/15 transition-all cursor-pointer border border-border/60 hover:border-primary/40 bg-card shadow-md">
               <CardHeader>
                 <div className="flex items-center gap-3 mb-2">
@@ -75,7 +98,8 @@ export default function SiteSelection() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )

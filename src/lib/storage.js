@@ -1,4 +1,6 @@
-// localStorage를 사용한 데이터 관리
+// localStorage를 사용한 데이터 관리 및 API 연동
+
+import { fetchSiteTimelineData, fetchAllSitesData } from './api';
 
 const STORAGE_KEY = 'site_timeline_data';
 
@@ -17,28 +19,28 @@ const getInitialData = () => ({
 // 초기 타임라인 데이터
 const getInitialTimeline = () => [
   // 구축 및 설치
-  { id: 1, step: '01', task: '중계기 세팅', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 2, step: '02', task: 'VPN 세팅', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 3, step: '03', task: '포트포워딩 세팅', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 4, step: '04', task: '네트워크 서버 설치', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 5, step: '05', task: 'IP 할당', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 6, step: '06', task: '운영서버 설치', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 7, step: '07', task: '도면 세팅', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 8, step: '08', task: '비콘 데이터 대시보드 등록', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 9, step: '09', task: '알리고 세팅', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 10, step: '10', task: '트래커 EUI LIST 확인', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 11, step: '11', task: '비콘 설치', section: '구축 및 설치', rnd: 'pending', field: 'completed' },
-  { id: 12, step: '12', task: '지오 펜스 & 셀 플래닝 대시보드 적용', section: '구축 및 설치', rnd: 'pending', field: 'completed' },
-  { id: 13, step: '13', task: '트래커 스마트 워치 MAC 매핑', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
-  { id: 14, step: '14', task: '스마트 워치 APK 설치', section: '구축 및 설치', rnd: 'completed', field: 'completed' },
+  { id: 1, step: '01', task: '중계기 세팅', section: '구축 및 설치', status: 'completed', role: 'both', completedAt: '2025-12-11T10:00:00Z' },
+  { id: 2, step: '02', task: 'VPN 세팅', section: '구축 및 설치', status: 'completed', role: 'rnd' },
+  { id: 3, step: '03', task: '포트포워딩 세팅', section: '구축 및 설치', status: 'completed', role: 'rnd' },
+  { id: 4, step: '04', task: '네트워크 서버 설치', section: '구축 및 설치', status: 'completed', role: 'field' },
+  { id: 5, step: '05', task: 'IP 할당', section: '구축 및 설치', status: 'completed', role: 'rnd' },
+  { id: 6, step: '06', task: '운영서버 설치', section: '구축 및 설치', status: 'completed', role: 'rnd' },
+  { id: 7, step: '07', task: '도면 세팅', section: '구축 및 설치', status: 'completed', role: 'field' },
+  { id: 8, step: '08', task: '비콘 데이터 대시보드 등록', section: '구축 및 설치', status: 'completed', role: 'both' },
+  { id: 9, step: '09', task: '알리고 세팅', section: '구축 및 설치', status: 'completed', role: 'both' },
+  { id: 10, step: '10', task: '트래커 EUI LIST 확인', section: '구축 및 설치', status: 'completed', role: 'both' },
+  { id: 11, step: '11', task: '비콘 설치', section: '구축 및 설치', status: 'pending', role: 'both' },
+  { id: 12, step: '12', task: '지오 펜스 & 셀 플래닝', section: '구축 및 설치', status: 'pending', role: 'both' },
+  { id: 13, step: '13', task: '트래커 스마트 워치 MAC 매핑', section: '구축 및 설치', status: 'completed', role: 'both' },
+  { id: 14, step: '14', task: '스마트 워치 APK 설치', section: '구축 및 설치', status: 'completed', role: 'both' },
   // 대시보드 필드 테스트
-  { id: 15, step: '15', task: '고정형 검침기 데이타 확인', section: '대시보드 필드 테스트', rnd: 'pending', field: 'pending' },
-  { id: 16, step: '16', task: '이동형 검침기 데이타 확인', section: '대시보드 필드 테스트', rnd: 'completed', field: 'completed' },
-  { id: 17, step: '17', task: '스마트워치 데이타 확인', section: '대시보드 필드 테스트', rnd: 'completed', field: 'completed' },
+  { id: 15, step: '15', task: '고정형 검침기 데이타 확인', section: '대시보드 필드 테스트', status: 'pending', role: 'both' },
+  { id: 16, step: '16', task: '이동형 검침기 데이타 확인', section: '대시보드 필드 테스트', status: 'completed', role: 'both' },
+  { id: 17, step: '17', task: '스마트워치 데이타 확인', section: '대시보드 필드 테스트', status: 'completed', role: 'both' },
   // 준공 및 문서
-  { id: 18, step: '18', task: '점검 리스트 확인', section: '준공 및 문서', rnd: 'working', field: 'working' },
-  { id: 19, step: '19', task: '준공 문서 제출', section: '준공 및 문서', rnd: 'pending', field: 'pending' },
-  { id: 20, step: '20', task: '매뉴얼 문서 작업', section: '준공 및 문서', rnd: 'pending', field: 'pending' },
+  { id: 18, step: '18', task: '점검 리스트 확인', section: '준공 및 문서', status: 'working', role: 'both' },
+  { id: 19, step: '19', task: '준공 문서 제출', section: '준공 및 문서', status: 'pending', role: 'both' },
+  { id: 20, step: '20', task: '매뉴얼 문서 작업', section: '준공 및 문서', status: 'pending', role: 'both' },
 ];
 
 // 초기 체크리스트 데이터
@@ -64,8 +66,70 @@ const getInitialChecklist = () => [
   { id: 19, text: '고정형 가스 검지기에서 허용범위를 넘어설 경우 알림을 표시하고 관리자에게 문자로 전송되는가', checked: true },
 ];
 
-// 데이터 로드
-export const loadData = () => {
+// API에서 초기 타임라인 데이터 로드 (새로고침 시마다 최신 데이터 가져옴)
+export const loadInitialDataFromAPI = async (forceRefresh = true) => {
+  try {
+    // 항상 API에서 최신 데이터 가져오기
+    const data = await fetchAllSitesData();
+    
+    // API 응답이 { sites: [...] } 형태인지 확인
+    if (data && data.sites && Array.isArray(data.sites)) {
+      // 체크리스트 검증 및 업데이트
+      data.sites.forEach(site => {
+        if (site.checklist) {
+          if (site.checklist.length !== 19) {
+            const newChecklist = getInitialChecklist();
+            newChecklist.forEach((newItem) => {
+              const existingItem = site.checklist.find(item => 
+                item.id === newItem.id || item.text === newItem.text
+              );
+              if (existingItem) {
+                newItem.checked = existingItem.checked;
+              }
+            });
+            site.checklist = newChecklist;
+          } else {
+            const validIds = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+            const hasInvalidId = site.checklist.some(item => !validIds.has(item.id));
+            if (hasInvalidId) {
+              site.checklist = site.checklist.filter(item => validIds.has(item.id));
+            }
+          }
+        } else {
+          site.checklist = getInitialChecklist();
+        }
+      });
+      // localStorage에 캐시 저장 (최신 데이터로 갱신)
+      saveData(data);
+      return data;
+    }
+    // API 응답이 직접 배열인 경우
+    if (Array.isArray(data)) {
+      const formattedData = { sites: data };
+      // 체크리스트 검증
+      formattedData.sites.forEach(site => {
+        if (!site.checklist || site.checklist.length !== 19) {
+          site.checklist = getInitialChecklist();
+        }
+      });
+      saveData(formattedData);
+      return formattedData;
+    }
+  } catch (error) {
+    console.error('Failed to load data from API:', error);
+    // API 실패 시에만 localStorage 캐시 사용
+    const cachedData = loadDataFromCache();
+    if (cachedData && cachedData.sites && cachedData.sites.length > 0) {
+      return cachedData;
+    }
+    // 캐시도 없으면 초기 데이터 반환
+    return getInitialData();
+  }
+  return getInitialData();
+};
+
+// localStorage 캐시에서 데이터 로드
+const loadDataFromCache = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -111,9 +175,14 @@ export const loadData = () => {
       return data;
     }
   } catch (error) {
-    console.error('Failed to load data:', error);
+    console.error('Failed to load data from cache:', error);
   }
   return getInitialData();
+};
+
+// 데이터 로드 (기존 호환성 유지 - 동기 함수, 캐시에서만)
+export const loadData = () => {
+  return loadDataFromCache();
 };
 
 // 데이터 저장
@@ -125,10 +194,81 @@ export const saveData = (data) => {
   }
 };
 
-// 사업소 데이터 가져오기
+// 사업소 데이터 가져오기 (동기 - 캐시에서)
 export const getSiteData = (siteId) => {
   const data = loadData();
   return data.sites.find(site => site.id === siteId);
+};
+
+// 사업소 데이터 가져오기 (비동기 - API에서, 새로고침 시마다 최신 데이터 가져옴)
+export const getSiteDataFromAPI = async (siteId, forceRefresh = true) => {
+  try {
+    // 항상 API에서 최신 데이터 가져오기
+    const siteData = await fetchSiteTimelineData(siteId);
+    
+    // API 응답이 직접 사이트 객체인 경우
+    if (siteData && siteData.id) {
+      // 체크리스트 검증
+      if (siteData.checklist && siteData.checklist.length !== 19) {
+        const newChecklist = getInitialChecklist();
+        newChecklist.forEach((newItem) => {
+          const existingItem = siteData.checklist.find(item => 
+            item.id === newItem.id || item.text === newItem.text
+          );
+          if (existingItem) {
+            newItem.checked = existingItem.checked;
+          }
+        });
+        siteData.checklist = newChecklist;
+      }
+      // localStorage 캐시 업데이트 (최신 데이터로 갱신)
+      const data = loadData();
+      const siteIndex = data.sites.findIndex(site => site.id === siteId);
+      if (siteIndex !== -1) {
+        data.sites[siteIndex] = siteData;
+      } else {
+        data.sites.push(siteData);
+      }
+      saveData(data);
+      return siteData;
+    }
+    // API 응답이 { site: {...} } 형태인 경우
+    if (siteData && siteData.site) {
+      const site = siteData.site;
+      // 체크리스트 검증
+      if (site.checklist && site.checklist.length !== 19) {
+        const newChecklist = getInitialChecklist();
+        newChecklist.forEach((newItem) => {
+          const existingItem = site.checklist.find(item => 
+            item.id === newItem.id || item.text === newItem.text
+          );
+          if (existingItem) {
+            newItem.checked = existingItem.checked;
+          }
+        });
+        site.checklist = newChecklist;
+      }
+      // localStorage 캐시 업데이트
+      const data = loadData();
+      const siteIndex = data.sites.findIndex(s => s.id === siteId);
+      if (siteIndex !== -1) {
+        data.sites[siteIndex] = site;
+      } else {
+        data.sites.push(site);
+      }
+      saveData(data);
+      return site;
+    }
+  } catch (error) {
+    console.error('Failed to fetch site data from API:', error);
+    // API 실패 시에만 캐시에서 가져오기
+    const cachedData = getSiteData(siteId);
+    if (cachedData) {
+      return cachedData;
+    }
+    throw error; // 캐시도 없으면 에러 throw
+  }
+  return null;
 };
 
 // 사업소 데이터 업데이트
@@ -178,11 +318,9 @@ export const calculateProgress = (siteId) => {
   const site = getSiteData(siteId);
   if (!site) return { timeline: 0, checklist: 0, overall: 0 };
 
-  // 타임라인 진행도 (R&D와 현장팀 모두 완료된 항목 비율)
-  const timelineTotal = site.timeline.length * 2; // R&D + 현장팀
-  const timelineCompleted = site.timeline.reduce((count, item) => {
-    return count + (item.rnd === 'completed' ? 1 : 0) + (item.field === 'completed' ? 1 : 0);
-  }, 0);
+  // 타임라인 진행도 (status가 completed인 항목 비율)
+  const timelineTotal = site.timeline.length;
+  const timelineCompleted = site.timeline.filter(item => item.status === 'completed').length;
   const timelineProgress = (timelineCompleted / timelineTotal) * 100;
 
   // 체크리스트 진행도
