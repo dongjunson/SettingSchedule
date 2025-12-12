@@ -56,12 +56,41 @@ const getInitialChecklist = () => [
   { id: 19, text: '고정형 가스 검지기에서 허용범위를 넘어설 경우 알림을 표시하고 관리자에게 문자로 전송되는가', checked: true },
 ];
 
+// 100% 완료된 타임라인 데이터 생성
+const getCompletedTimeline = () => {
+  return getInitialTimeline().map(item => ({
+    ...item,
+    status: 'completed',
+    completedAt: item.completedAt || '2025-12-15T10:00:00Z'
+  }));
+};
+
+// 100% 완료된 체크리스트 데이터 생성
+const getCompletedChecklist = () => {
+  return getInitialChecklist().map(item => ({
+    ...item,
+    checked: true
+  }));
+};
+
 // 초기 데이터 구조
 const getInitialData = () => ({
   sites: [
     {
       id: 'anyang-bakdal',
       name: '안양 박달 사업소',
+      timeline: getInitialTimeline(),
+      checklist: getInitialChecklist(),
+    },
+    {
+      id: 'icheon-public-sewer',
+      name: '이천 공공 하수도 사업소',
+      timeline: getCompletedTimeline(),
+      checklist: getCompletedChecklist(),
+    },
+    {
+      id: 'gunpo-sewer',
+      name: '군포 하수도 사업소',
       timeline: getInitialTimeline(),
       checklist: getInitialChecklist(),
     },
@@ -127,17 +156,32 @@ export const useStore = create(
             checklist: validateAndUpdateChecklist(site.checklist),
           }));
 
-          set({ sites, loading: false });
-          return { sites };
+          // 초기 데이터와 병합 (초기 데이터의 프로젝트가 API에 없으면 추가)
+          const initialData = getInitialData();
+          const initialSiteIds = new Set(sites.map(s => s.id));
+          const missingInitialSites = initialData.sites.filter(s => !initialSiteIds.has(s.id));
+          const mergedSites = [...sites, ...missingInitialSites];
+
+          set({ sites: mergedSites, loading: false });
+          return { sites: mergedSites };
         } catch (error) {
           console.error('Failed to load data from API:', error);
+          // API 실패 시 초기 데이터 사용 (새로 추가한 프로젝트 포함)
+          const initialData = getInitialData();
+          // 기존 캐시된 데이터와 초기 데이터를 병합 (초기 데이터 우선)
           const cachedSites = get().sites;
           if (cachedSites && cachedSites.length > 0) {
-            set({ loading: false, error: null });
-            return { sites: cachedSites };
+            // 초기 데이터의 프로젝트 ID 목록
+            const initialSiteIds = new Set(initialData.sites.map(s => s.id));
+            // 캐시된 데이터 중 초기 데이터에 없는 프로젝트는 유지
+            const mergedSites = [
+              ...initialData.sites,
+              ...cachedSites.filter(s => !initialSiteIds.has(s.id))
+            ];
+            set({ sites: mergedSites, loading: false, error: null });
+            return { sites: mergedSites };
           }
           // 캐시도 없으면 초기 데이터 반환
-          const initialData = getInitialData();
           set({ sites: initialData.sites, loading: false, error: null });
           return initialData;
         }
@@ -305,6 +349,17 @@ export const useStore = create(
       name: STORAGE_KEY,
       // persist 옵션: sites만 저장
       partialize: (state) => ({ sites: state.sites }),
+      // localStorage에서 복원할 때 초기 데이터의 프로젝트들이 항상 포함되도록 함
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          const initialData = getInitialData();
+          const initialSiteIds = new Set(state.sites.map(s => s.id));
+          const missingInitialSites = initialData.sites.filter(s => !initialSiteIds.has(s.id));
+          if (missingInitialSites.length > 0) {
+            state.sites = [...state.sites, ...missingInitialSites];
+          }
+        }
+      },
     }
   )
 );

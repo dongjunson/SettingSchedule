@@ -51,7 +51,7 @@ export default function ChecklistPage() {
   }
 
   if (!site) {
-    return <div className="p-8">사업소를 찾을 수 없습니다.</div>
+    return <div className="p-8">프로젝트를 찾을 수 없습니다.</div>
   }
 
   const completedCount = site.checklist.filter(item => item.checked).length

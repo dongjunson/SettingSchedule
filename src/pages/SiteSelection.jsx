@@ -40,8 +40,8 @@ export default function SiteSelection() {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">사업소 타임라인 관리 시스템</h1>
-          <p className="text-muted-foreground">사업소를 선택하여 타임라인과 체크리스트를 확인하세요</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">JRI PMS</h1>
+          <p className="text-muted-foreground">Project Management System<br/>프로젝트를 선택하여 타임라인과 체크리스트를 확인하세요</p>
         </div>
 
         {loading ? (
@@ -91,7 +91,7 @@ export default function SiteSelection() {
                     onClick={() => navigate(`/site/${site.id}`)}
                     className="w-full"
                   >
-                    사업소 열기
+                    프로젝트 열기
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>

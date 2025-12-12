@@ -100,7 +100,7 @@ export default function TimelinePage() {
   }
 
   if (!site) {
-    return <div className="p-8">사업소를 찾을 수 없습니다.</div>
+    return <div className="p-8">프로젝트를 찾을 수 없습니다.</div>
   }
 
   const sections = [...new Set(site.timeline.map(item => item.section))]
@@ -118,7 +118,7 @@ export default function TimelinePage() {
               className="flex-shrink-0"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">사업소 목록으로</span>
+              <span className="hidden sm:inline">프로젝트 목록으로</span>
             </Button>
             <Button 
               onClick={() => navigate(`/site/${siteId}/checklist`)}
@@ -136,14 +136,14 @@ export default function TimelinePage() {
             className="mb-4 hidden md:inline-flex"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            사업소 목록으로
+            프로젝트 목록으로
           </Button>
           
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 flex items-center gap-3">
                 <span className="w-1 h-8 bg-primary rounded-full"></span>
-                {site.name} 설치 타임라인
+                {site.name} 프로젝트 타임라인
               </h1>
               <p className="text-muted-foreground ml-4 text-sm sm:text-base">타임라인 항목을 클릭하여 상태를 변경할 수 있습니다</p>
             </div>

@@ -4,12 +4,41 @@ import { fetchSiteTimelineData, fetchAllSitesData } from './api';
 
 const STORAGE_KEY = 'site_timeline_data';
 
+// 100% 완료된 타임라인 데이터 생성
+const getCompletedTimeline = () => {
+  return getInitialTimeline().map(item => ({
+    ...item,
+    status: 'completed',
+    completedAt: item.completedAt || '2025-12-15T10:00:00Z'
+  }));
+};
+
+// 100% 완료된 체크리스트 데이터 생성
+const getCompletedChecklist = () => {
+  return getInitialChecklist().map(item => ({
+    ...item,
+    checked: true
+  }));
+};
+
 // 초기 데이터 구조
 const getInitialData = () => ({
   sites: [
     {
       id: 'anyang-bakdal',
       name: '안양 박달 사업소',
+      timeline: getInitialTimeline(),
+      checklist: getInitialChecklist(),
+    },
+    {
+      id: 'icheon-public-sewer',
+      name: '이천 공공 하수도 사업소',
+      timeline: getCompletedTimeline(),
+      checklist: getCompletedChecklist(),
+    },
+    {
+      id: 'gunpo-sewer',
+      name: '군포 하수도 사업소',
       timeline: getInitialTimeline(),
       checklist: getInitialChecklist(),
     },
