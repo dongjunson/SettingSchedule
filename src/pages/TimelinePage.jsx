@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, X, Clock, ListChecks, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Check, X, Clock, ListChecks, ChevronDown, ChevronRight, User } from 'lucide-react'
 import { useStore } from '../lib/store'
+import { useUserStore } from '../lib/userStore'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ProgressPieChart } from '../components/ProgressChart'
@@ -17,6 +18,15 @@ export default function TimelinePage() {
   const loadSite = useStore((state) => state.loadSite)
   const updateTimelineItem = useStore((state) => state.updateTimelineItem)
   const calculateProgress = useStore((state) => state.calculateProgress)
+
+  // 사용자 스토어
+  const currentUser = useUserStore((state) => state.currentUser)
+  const setUser = useUserStore((state) => state.setUser)
+  const clearUser = useUserStore((state) => state.clearUser)
+
+  // 닉네임 입력 모달 상태
+  const [showNicknameModal, setShowNicknameModal] = useState(false)
+  const [nicknameInput, setNicknameInput] = useState('')
 
   // 아코디언 상태 관리 (섹션-서브섹션 조합을 키로 사용)
   const [expandedSubsections, setExpandedSubsections] = useState({})
@@ -57,14 +67,30 @@ export default function TimelinePage() {
   }
 
   const handleStatusChange = async (itemId, currentStatus) => {
+    // 닉네임이 없으면 모달 표시
+    if (!currentUser?.nickname) {
+      setShowNicknameModal(true)
+      return
+    }
+
     const nextStatus = getNextStatus(currentStatus)
     const updates = {
       status: nextStatus,
-      // completed 상태로 변경될 때만 completedAt 저장
-      completedAt: nextStatus === 'completed' ? new Date().toISOString() : null
+      // completed 상태로 변경될 때만 completedAt과 completedBy 저장
+      completedAt: nextStatus === 'completed' ? new Date().toISOString() : null,
+      completedBy: nextStatus === 'completed' ? currentUser.nickname : null
     }
     // zustand 스토어를 통해 업데이트 (자동으로 리렌더링됨)
     await updateTimelineItem(siteId, itemId, updates)
+  }
+
+  // 닉네임 저장 핸들러
+  const handleSaveNickname = () => {
+    if (nicknameInput.trim()) {
+      setUser(nicknameInput.trim())
+      setShowNicknameModal(false)
+      setNicknameInput('')
+    }
   }
 
   // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
@@ -125,9 +151,70 @@ export default function TimelinePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 닉네임 입력 모달 */}
+      {showNicknameModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-foreground mb-4">닉네임 입력</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              상태 변경 시 누가 체크했는지 기록됩니다.
+            </p>
+            <input
+              type="text"
+              value={nicknameInput}
+              onChange={(e) => setNicknameInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname()}
+              placeholder="닉네임을 입력하세요"
+              className="w-full px-4 py-2 border border-border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowNicknameModal(false)}
+                className="flex-1"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleSaveNickname}
+                disabled={!nicknameInput.trim()}
+                className="flex-1"
+              >
+                저장
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto p-4 md:p-8">
         {/* Header */}
         <div className="mb-6">
+          {/* 사용자 정보 표시 */}
+          <div className="flex items-center justify-end mb-4">
+            {currentUser?.nickname ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
+                <User className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">{currentUser.nickname}</span>
+                <button
+                  onClick={clearUser}
+                  className="ml-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  변경
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowNicknameModal(true)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full hover:bg-muted/80 transition-colors"
+              >
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">닉네임 설정</span>
+              </button>
+            )}
+          </div>
+
           {/* Mobile: 점검 리스트 버튼을 상단에 배치 */}
           <div className="flex items-center justify-between mb-4 md:hidden">
             <Button
@@ -138,7 +225,7 @@ export default function TimelinePage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">프로젝트 목록으로</span>
             </Button>
-            <Button 
+            <Button
               onClick={() => navigate(`/site/${siteId}/checklist`)}
               className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
             >
@@ -331,18 +418,28 @@ export default function TimelinePage() {
                           <button
                             onClick={() => handleStatusChange(item.id, currentStatus)}
                             className={cn(
-                              "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all min-h-[36px]",
+                              "w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all min-h-[36px]",
                               getStatusColor(currentStatus)
                             )}
                           >
-                            {getStatusIcon(currentStatus)}
-                            <span className="text-xs">
-                              {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
-                            </span>
-                            {isCompleted && item.completedAt && (
-                              <span className="text-[11px] ml-1 opacity-90">
-                                ({formatCompletedTime(item.completedAt)})
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(currentStatus)}
+                              <span className="text-xs">
+                                {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
                               </span>
+                            </div>
+                            {isCompleted && (item.completedAt || item.completedBy) && (
+                              <div className="flex items-center gap-1.5 text-[10px] opacity-90">
+                                {item.completedBy && (
+                                  <span className="flex items-center gap-0.5">
+                                    <User className="w-3 h-3" />
+                                    {item.completedBy}
+                                  </span>
+                                )}
+                                {item.completedAt && (
+                                  <span>({formatCompletedTime(item.completedAt)})</span>
+                                )}
+                              </div>
                             )}
                           </button>
                         </div>
@@ -437,18 +534,28 @@ export default function TimelinePage() {
                           <button
                             onClick={() => handleStatusChange(item.id, currentStatus)}
                             className={cn(
-                              "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all min-h-[36px]",
+                              "w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all min-h-[36px]",
                               getStatusColor(currentStatus)
                             )}
                           >
-                            {getStatusIcon(currentStatus)}
-                            <span className="text-xs">
-                              {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
-                            </span>
-                            {isCompleted && item.completedAt && (
-                              <span className="text-[11px] ml-1 opacity-90">
-                                ({formatCompletedTime(item.completedAt)})
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(currentStatus)}
+                              <span className="text-xs">
+                                {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
                               </span>
+                            </div>
+                            {isCompleted && (item.completedAt || item.completedBy) && (
+                              <div className="flex items-center gap-1.5 text-[10px] opacity-90">
+                                {item.completedBy && (
+                                  <span className="flex items-center gap-0.5">
+                                    <User className="w-3 h-3" />
+                                    {item.completedBy}
+                                  </span>
+                                )}
+                                {item.completedAt && (
+                                  <span>({formatCompletedTime(item.completedAt)})</span>
+                                )}
+                              </div>
                             )}
                           </button>
                         </div>
