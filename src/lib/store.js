@@ -8,29 +8,82 @@ const STORAGE_KEY = 'site_timeline_data';
 
 // 초기 타임라인 데이터
 const getInitialTimeline = () => [
-  // 구축 및 설치
-  { id: 1, step: '01', task: '중계기 세팅', section: '구축 및 설치', status: 'completed', role: 'both', completedAt: '2025-12-11T10:00:00Z' },
-  { id: 2, step: '02', task: 'VPN 세팅', section: '구축 및 설치', status: 'completed', role: 'rnd' },
-  { id: 3, step: '03', task: '포트포워딩 세팅', section: '구축 및 설치', status: 'completed', role: 'rnd' },
-  { id: 4, step: '04', task: '네트워크 서버 설치', section: '구축 및 설치', status: 'completed', role: 'field' },
-  { id: 5, step: '05', task: 'IP 할당', section: '구축 및 설치', status: 'completed', role: 'rnd' },
-  { id: 6, step: '06', task: '운영서버 설치', section: '구축 및 설치', status: 'completed', role: 'rnd' },
-  { id: 7, step: '07', task: '도면 세팅', section: '구축 및 설치', status: 'completed', role: 'field' },
-  { id: 8, step: '08', task: '비콘 데이터 대시보드 등록', section: '구축 및 설치', status: 'completed', role: 'both' },
-  { id: 9, step: '09', task: '알리고 세팅', section: '구축 및 설치', status: 'completed', role: 'both' },
-  { id: 10, step: '10', task: '트래커 EUI LIST 확인', section: '구축 및 설치', status: 'completed', role: 'both' },
-  { id: 11, step: '11', task: '비콘 설치', section: '구축 및 설치', status: 'pending', role: 'both' },
-  { id: 12, step: '12', task: '지오 펜스 & 셀 플래닝', section: '구축 및 설치', status: 'pending', role: 'both' },
-  { id: 13, step: '13', task: '트래커 스마트 워치 MAC 매핑', section: '구축 및 설치', status: 'completed', role: 'both' },
-  { id: 14, step: '14', task: '스마트 워치 APK 설치', section: '구축 및 설치', status: 'completed', role: 'both' },
-  // 대시보드 필드 테스트
-  { id: 15, step: '15', task: '고정형 검침기 데이타 확인', section: '대시보드 필드 테스트', status: 'pending', role: 'both' },
-  { id: 16, step: '16', task: '이동형 검침기 데이타 확인', section: '대시보드 필드 테스트', status: 'completed', role: 'both' },
-  { id: 17, step: '17', task: '스마트워치 데이타 확인', section: '대시보드 필드 테스트', status: 'completed', role: 'both' },
-  // 준공 및 문서
-  { id: 18, step: '18', task: '점검 리스트 확인', section: '준공 및 문서', status: 'working', role: 'both' },
-  { id: 19, step: '19', task: '준공 문서 제출', section: '준공 및 문서', status: 'pending', role: 'both' },
-  { id: 20, step: '20', task: '매뉴얼 문서 작업', section: '준공 및 문서', status: 'pending', role: 'both' },
+  // 1. 구축 및 설치
+  // 1-1. 사전 준비
+  { id: 1, step: '1-01', task: 'Kick-Off', section: '구축 및 설치', subsection: '사전 준비', status: 'pending', role: 'both' },
+  { id: 2, step: '1-02', task: '현장 답사시 비콘 갯수 픽스', section: '구축 및 설치', subsection: '사전 준비', status: 'pending', role: 'field' },
+  { id: 3, step: '1-03', task: '비콘 번호 체계표 생성 및 비콘 개발사에 전달', section: '구축 및 설치', subsection: '사전 준비', status: 'pending', role: 'field' },
+  { id: 4, step: '1-04', task: '계약 FIX 되면 운영 서버 개발사에 개발 요청', section: '구축 및 설치', subsection: '사전 준비', status: 'pending', role: 'rnd' },
+  { id: 5, step: '1-05', task: '제품 발주', section: '구축 및 설치', subsection: '사전 준비', status: 'pending', role: 'field' },
+  // 1-2. 인프라 구축
+  { id: 6, step: '1-06', task: 'IP 할당 및 구축', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  { id: 7, step: '1-07', task: '중계기 설치 실사 동행 및 송수신 통신 테스트', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  { id: 8, step: '1-08', task: '중계기 세팅', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  { id: 9, step: '1-09', task: '중계기 음영지역 테스트', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  { id: 10, step: '1-10', task: '중계기 방폭존 잔여 설치 공사', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  { id: 11, step: '1-11', task: 'VPN 세팅', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  { id: 12, step: '1-12', task: 'Lora 네트워크 서버 현장 서버실 설치', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  { id: 13, step: '1-13', task: '통신 품질테스트', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  { id: 14, step: '1-14', task: '중계기 품질 측정', section: '구축 및 설치', subsection: '인프라 구축', status: 'pending', role: 'field' },
+  // 1-3. 가스검침기 설치
+  { id: 15, step: '1-15', task: 'PPM 고정가스 검침기 설치용 AP 셋팅을 위한 전송 서버 주소 및 고유 아이디 생성 및 배포', section: '구축 및 설치', subsection: '가스검침기 설치', status: 'pending', role: 'field' },
+  { id: 16, step: '1-16', task: 'PPM 고정가스 검침기 설치', section: '구축 및 설치', subsection: '가스검침기 설치', status: 'pending', role: 'field' },
+  // 1-4. 운영서버 설치
+  { id: 17, step: '1-17', task: '알리고 API 신규 사업소 IP 등록', section: '구축 및 설치', subsection: '운영서버 설치', status: 'pending', role: 'rnd' },
+  { id: 18, step: '1-18', task: '운영서버 준비 완료 확인', section: '구축 및 설치', subsection: '운영서버 설치', status: 'pending', role: 'rnd' },
+  { id: 19, step: '1-19', task: '운영서버 현장 서버실 설치', section: '구축 및 설치', subsection: '운영서버 설치', status: 'pending', role: 'field' },
+  { id: 20, step: '1-20', task: '운영서버 URL 확인', section: '구축 및 설치', subsection: '운영서버 설치', status: 'pending', role: 'field' },
+  // 1-5. 운영서버 설정
+  { id: 21, step: '1-21', task: '운영서버 권한 설정', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'field' },
+  { id: 22, step: '1-22', task: '운영서버 사용자 설정', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'field' },
+  { id: 23, step: '1-23', task: '운영서버 데이터 정책 관리 설정', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'field' },
+  { id: 24, step: '1-24', task: '지자체 로고 파일 준비', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'rnd' },
+  { id: 25, step: '1-25', task: '트래커 EUI LIST 확인', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'field' },
+  { id: 26, step: '1-26', task: '운영서버 운영사 관리 설정', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'field' },
+  { id: 27, step: '1-27', task: '운영서버 센서 공급사 설정', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'field' },
+  { id: 28, step: '1-28', task: '운영서버 센서 마스터 관리 설정', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'field' },
+  { id: 29, step: '1-29', task: '운영서버 현장-센서 권한 관리 설정', section: '구축 및 설치', subsection: '운영서버 설정', status: 'pending', role: 'field' },
+  // 1-6. 운영서버 데이터 등록
+  { id: 30, step: '1-30', task: '운영서버 현장 관리 - 현장 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 31, step: '1-31', task: '운영서버 현장 관리 - 도면 세팅', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'rnd' },
+  { id: 32, step: '1-32', task: '운영서버 비콘 관리 - 비콘 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 33, step: '1-33', task: '운영서버 트래커 관리 - 트래커 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 34, step: '1-34', task: '운영서버 센서 관리 - 워치 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 35, step: '1-35', task: '운영서버 센서 관리 - 이동가스검침기 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 36, step: '1-36', task: '운영서버 알림 관리 - 알림 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 37, step: '1-37', task: '운영서버 작업자 관리 - 작업자 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 38, step: '1-38', task: '운영서버 작업자 관리 - 트래커/센서 교부', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 39, step: '1-39', task: '운영서버 위험성 평가 관리 - 위험성 평가 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 40, step: '1-40', task: '운영서버 작업 관리 - 작업 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'field' },
+  { id: 41, step: '1-41', task: '증빙자료 관리 - 증빙자료 13항 카테고리 등록', section: '구축 및 설치', subsection: '운영서버 데이터 등록', status: 'pending', role: 'rnd' },
+  // 1-7. 현장 설치
+  { id: 42, step: '1-42', task: '비콘 설치', section: '구축 및 설치', subsection: '현장 설치', status: 'pending', role: 'field' },
+  { id: 43, step: '1-43', task: '지오 펜스 & 셀 플래닝', section: '구축 및 설치', subsection: '현장 설치', status: 'pending', role: 'field' },
+  { id: 44, step: '1-44', task: '트래커 스마트 워치 MAC 매핑', section: '구축 및 설치', subsection: '현장 설치', status: 'pending', role: 'field' },
+  { id: 45, step: '1-45', task: '스마트 워치 APP 설치', section: '구축 및 설치', subsection: '현장 설치', status: 'pending', role: 'field' },
+
+  // 2. 대시보드 필드 테스트
+  { id: 46, step: '2-01', task: '사업소 명 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 47, step: '2-02', task: '날짜 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 48, step: '2-03', task: '날씨 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 49, step: '2-04', task: '작업자 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 50, step: '2-05', task: '작업 목록 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 51, step: '2-06', task: '고정형 비콘 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 52, step: '2-07', task: '트래커 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 53, step: '2-08', task: '워치 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 54, step: '2-09', task: '이동형 가스 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 55, step: '2-10', task: '고정가스 검침기 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 56, step: '2-11', task: '배터리 및 상태 이상 IoT 센서 현황 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+  { id: 57, step: '2-12', task: '위급 상황 현황 데이터 확인', section: '대시보드 필드 테스트', subsection: null, status: 'pending', role: 'both' },
+
+  // 3. 준공 및 문서
+  { id: 58, step: '3-01', task: '현장 VOC 점검 리스트 확인', section: '준공 및 문서', subsection: null, status: 'pending', role: 'both' },
+  { id: 59, step: '3-02', task: '메뉴얼 문서 작업', section: '준공 및 문서', subsection: null, status: 'pending', role: 'field' },
+  { id: 60, step: '3-03', task: '준공 문서 제출', section: '준공 및 문서', subsection: null, status: 'pending', role: 'field' },
+  { id: 61, step: '3-04', task: 'H/W, S/W 제품 사용 교육', section: '준공 및 문서', subsection: null, status: 'pending', role: 'field' },
+  { id: 62, step: '3-05', task: '사업소에 제품 배포 및 수량 확인', section: '준공 및 문서', subsection: null, status: 'pending', role: 'field' },
+  { id: 63, step: '3-06', task: '준공 검수', section: '준공 및 문서', subsection: null, status: 'pending', role: 'field' },
+  { id: 64, step: '3-07', task: '준공 완료', section: '준공 및 문서', subsection: null, status: 'pending', role: 'both' },
 ];
 
 // 초기 체크리스트 데이터

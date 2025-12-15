@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
-import { ArrowLeft, Check, X, Clock, ListChecks } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowLeft, Check, X, Clock, ListChecks, ChevronDown, ChevronRight } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -10,13 +10,31 @@ import { cn } from '../lib/utils'
 export default function TimelinePage() {
   const { siteId } = useParams()
   const navigate = useNavigate()
-  
+
   // zustand 스토어에서 상태와 함수 가져오기
   const site = useStore((state) => state.sites.find(s => s.id === siteId))
   const loading = useStore((state) => state.loading)
   const loadSite = useStore((state) => state.loadSite)
   const updateTimelineItem = useStore((state) => state.updateTimelineItem)
   const calculateProgress = useStore((state) => state.calculateProgress)
+
+  // 아코디언 상태 관리 (섹션-서브섹션 조합을 키로 사용)
+  const [expandedSubsections, setExpandedSubsections] = useState({})
+
+  // 서브섹션 토글 함수
+  const toggleSubsection = (sectionIndex, subIndex) => {
+    const key = `${sectionIndex}-${subIndex}`
+    setExpandedSubsections(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
+  }
+
+  // 서브섹션이 확장되어 있는지 확인 (기본값: 모두 확장)
+  const isSubsectionExpanded = (sectionIndex, subIndex) => {
+    const key = `${sectionIndex}-${subIndex}`
+    return expandedSubsections[key] !== false // 기본값 true
+  }
 
   useEffect(() => {
     const loadSiteData = async () => {
@@ -219,9 +237,248 @@ export default function TimelinePage() {
         <div className="space-y-12">
           {sections.map((section, sectionIndex) => {
             const sectionItems = site.timeline.filter(item => item.section === section)
+            // 중분류(subsection) 목록 추출
+            const subsections = [...new Set(sectionItems.map(item => item.subsection).filter(Boolean))]
+            const hasSubsections = subsections.length > 0
             // 한 행에 표시할 항목 수 (반응형)
             const itemsPerRow = 3
-            
+
+            // 아이템 렌더링 함수 (모바일용)
+            const renderMobileItem = (item) => {
+              // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
+              let role = (item.role || 'both').toString().trim().toLowerCase()
+              // 유효하지 않은 role 값은 'both'로 설정
+              if (role !== 'rnd' && role !== 'field' && role !== 'both') {
+                console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item)
+                role = 'both'
+              }
+
+              // status 기반으로 상태 판단 (단순화)
+              const currentStatus = item.status || 'pending'
+              const isCompleted = currentStatus === 'completed'
+              const isWorking = currentStatus === 'working'
+
+              return (
+                <div key={item.id} className="relative flex items-start gap-4">
+                  {/* Timeline Node - 좌측 정렬, 세로선 왼쪽에 맞춤 */}
+                  <div className="relative z-10 flex-shrink-0 -ml-6">
+                    <div className={cn(
+                      "flex items-center justify-center w-16 h-16 rounded-full font-bold text-sm shadow-lg border-2 transition-all",
+                      isCompleted
+                        ? "bg-blue-500 text-white border-blue-600 shadow-blue-500/40"
+                        : isWorking
+                        ? "bg-gray-500 text-white border-gray-600 shadow-gray-500/30"
+                        : "bg-white text-foreground border-border/60 shadow-md"
+                    )}>
+                      {item.step}
+                    </div>
+                  </div>
+
+                  {/* Content Card */}
+                  <div className="flex-1 min-w-0">
+                    <Card className={cn(
+                      "transition-all shadow-md hover:shadow-lg flex flex-col relative",
+                      isCompleted
+                        ? "border-2 border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25"
+                        : isWorking
+                        ? "border-2 border-gray-300 bg-gray-100 hover:border-gray-400 hover:bg-gray-200 hover:shadow-gray-300/20"
+                        : "border-2 border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10"
+                    )}>
+                      {/* Role Badges - 우측 상단 (모바일: 원형 한글자) */}
+                      <div className="absolute top-2 right-2 flex flex-row gap-1 lg:flex-col lg:top-3 lg:right-3">
+                        {/* R&D 뱃지: role이 'rnd'이거나 'both'일 때만 표시 */}
+                        {role === 'rnd' && (
+                          <div className="w-7 h-7 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
+                            <span className="lg:hidden">R</span>
+                            <span className="hidden lg:inline">R&D</span>
+                          </div>
+                        )}
+                        {/* 현장팀 뱃지: role이 'field'이거나 'both'일 때만 표시 */}
+                        {role === 'field' && (
+                          <div className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
+                            <span className="lg:hidden">현</span>
+                            <span className="hidden lg:inline">현장팀</span>
+                          </div>
+                        )}
+                        {/* Both 뱃지: role이 'both'일 때만 두 뱃지 모두 표시 */}
+                        {role === 'both' && (
+                          <>
+                            <div className="w-7 h-7 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
+                              <span className="lg:hidden">R</span>
+                              <span className="hidden lg:inline">R&D</span>
+                            </div>
+                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
+                              <span className="lg:hidden">현</span>
+                              <span className="hidden lg:inline">현장팀</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <CardContent className="px-1 py-4 pr-1 lg:p-4 lg:pr-4 flex flex-col flex-1 h-full">
+                        <h3 className={cn(
+                          "font-semibold text-lg mb-3 leading-snug text-center flex items-center justify-center flex-1 pr-2",
+                          isCompleted
+                            ? "text-blue-500"
+                            : isWorking
+                            ? "text-gray-700"
+                            : "text-foreground"
+                        )}>
+                          {item.task}
+                        </h3>
+
+                        <div className="mt-0 relative mx-4 lg:mx-0">
+                          <button
+                            onClick={() => handleStatusChange(item.id, currentStatus)}
+                            className={cn(
+                              "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all min-h-[36px]",
+                              getStatusColor(currentStatus)
+                            )}
+                          >
+                            {getStatusIcon(currentStatus)}
+                            <span className="text-xs">
+                              {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
+                            </span>
+                            {isCompleted && item.completedAt && (
+                              <span className="text-[11px] ml-1 opacity-90">
+                                ({formatCompletedTime(item.completedAt)})
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )
+            }
+
+            // 아이템 렌더링 함수 (데스크톱용)
+            const renderDesktopItem = (item) => {
+              // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
+              let role = (item.role || 'both').toString().trim().toLowerCase()
+              // 유효하지 않은 role 값은 'both'로 설정
+              if (role !== 'rnd' && role !== 'field' && role !== 'both') {
+                console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item)
+                role = 'both'
+              }
+
+              // status 기반으로 상태 판단 (단순화)
+              const currentStatus = item.status || 'pending'
+              const isCompleted = currentStatus === 'completed'
+              const isWorking = currentStatus === 'working'
+
+              return (
+                <div key={item.id} className="relative flex flex-col items-center h-full">
+                  {/* Timeline Node - centered on horizontal line */}
+                  <div className="relative z-10 mb-6 -mt-8">
+                    <div className={cn(
+                      "flex items-center justify-center w-16 h-16 rounded-full font-bold text-sm shadow-lg border-2 transition-all",
+                      isCompleted
+                        ? "bg-blue-500 text-white border-blue-600 shadow-blue-500/40"
+                        : isWorking
+                        ? "bg-gray-500 text-white border-gray-600 shadow-gray-500/30"
+                        : "bg-white text-foreground border-border/60 shadow-md"
+                    )}>
+                      {item.step}
+                    </div>
+                  </div>
+
+                  {/* Content Card */}
+                  <div className="w-full pt-6">
+                    <Card className={cn(
+                      "transition-all shadow-md hover:shadow-lg flex flex-col relative",
+                      isCompleted
+                        ? "border-2 border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25"
+                        : isWorking
+                        ? "border-2 border-gray-300 bg-gray-100 hover:border-gray-400 hover:bg-gray-200 hover:shadow-gray-300/20"
+                        : "border-2 border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10"
+                    )} style={{ height: '170px' }}>
+                      {/* Role Badges - 우측 상단 */}
+                      <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+                        {/* R&D 뱃지: role이 'rnd'이거나 'both'일 때만 표시 */}
+                        {role === 'rnd' && (
+                          <div className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                            R&D
+                          </div>
+                        )}
+                        {/* 현장팀 뱃지: role이 'field'이거나 'both'일 때만 표시 */}
+                        {role === 'field' && (
+                          <div className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                            현장팀
+                          </div>
+                        )}
+                        {/* Both 뱃지: role이 'both'일 때만 두 뱃지 모두 표시 */}
+                        {role === 'both' && (
+                          <>
+                            <div className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                              R&D
+                            </div>
+                            <div className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                              현장팀
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <CardContent className="p-4 flex flex-col flex-1 h-full">
+                        <h3 className={cn(
+                          "font-semibold text-base mb-3 leading-snug text-center flex items-center justify-center flex-1",
+                          isCompleted
+                            ? "text-blue-500"
+                            : isWorking
+                            ? "text-gray-700"
+                            : "text-foreground"
+                        )}>
+                          {item.task}
+                        </h3>
+
+                        <div className="mt-0 relative">
+                          <button
+                            onClick={() => handleStatusChange(item.id, currentStatus)}
+                            className={cn(
+                              "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all min-h-[36px]",
+                              getStatusColor(currentStatus)
+                            )}
+                          >
+                            {getStatusIcon(currentStatus)}
+                            <span className="text-xs">
+                              {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
+                            </span>
+                            {isCompleted && item.completedAt && (
+                              <span className="text-[11px] ml-1 opacity-90">
+                                ({formatCompletedTime(item.completedAt)})
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )
+            }
+
+            // 데스크톱 행 렌더링 함수
+            const renderDesktopRows = (items) => {
+              return Array.from({ length: Math.ceil(items.length / itemsPerRow) }).map((_, rowIndex) => {
+                const rowItems = items.slice(rowIndex * itemsPerRow, (rowIndex + 1) * itemsPerRow)
+
+                return (
+                  <div key={rowIndex} className="relative">
+                    {/* Horizontal Timeline Line with gradient on both sides - centered on badge */}
+                    <div className="absolute top-0 left-0 right-0 h-1 z-0">
+                      <div className="h-full bg-gradient-to-r from-transparent via-primary via-primary/90 to-transparent"></div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-6 relative">
+                      {rowItems.map((item) => renderDesktopItem(item))}
+                    </div>
+                  </div>
+                )
+              })
+            }
+
             return (
               <div key={section} className="space-y-6">
                 {/* Section Header */}
@@ -234,249 +491,97 @@ export default function TimelinePage() {
                   </h2>
                 </div>
 
-                {/* Mobile/Tablet: Vertical Timeline */}
-                <div className="lg:hidden space-y-8 pl-8 relative">
-                  {/* Vertical Timeline Line - Mobile only - positioned left of center */}
-                  <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent"></div>
-                  
-                  {sectionItems.map((item, itemIndex) => {
-                    const isLastItem = itemIndex === sectionItems.length - 1
-                    // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
-                    let role = (item.role || 'both').toString().trim().toLowerCase()
-                    // 유효하지 않은 role 값은 'both'로 설정
-                    if (role !== 'rnd' && role !== 'field' && role !== 'both') {
-                      console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item)
-                      role = 'both'
-                    }
-                    
-                    // status 기반으로 상태 판단 (단순화)
-                    const currentStatus = item.status || 'pending'
-                    const isCompleted = currentStatus === 'completed'
-                    const isWorking = currentStatus === 'working'
-                    
-                    return (
-                      <div key={item.id} className="relative flex items-start gap-4">
-                        {/* Timeline Node - 좌측 정렬, 세로선 왼쪽에 맞춤 */}
-                        <div className="relative z-10 flex-shrink-0 -ml-6">
-                          <div className={cn(
-                            "flex items-center justify-center w-16 h-16 rounded-full font-bold text-lg shadow-lg border-2 transition-all",
-                            isCompleted
-                              ? "bg-blue-500 text-white border-blue-600 shadow-blue-500/40"
-                              : isWorking
-                              ? "bg-gray-500 text-white border-gray-600 shadow-gray-500/30"
-                              : "bg-white text-foreground border-border/60 shadow-md"
-                          )}>
-                            {item.step}
-                          </div>
-                        </div>
+                {/* 중분류가 있는 경우 */}
+                {hasSubsections ? (
+                  <div className="space-y-4">
+                    {subsections.map((subsection, subIndex) => {
+                      const subsectionItems = sectionItems.filter(item => item.subsection === subsection)
+                      const isExpanded = isSubsectionExpanded(sectionIndex, subIndex)
+                      const completedCount = subsectionItems.filter(item => item.status === 'completed').length
+                      const totalCount = subsectionItems.length
 
-                        {/* Content Card */}
-                        <div className="flex-1 min-w-0">
-                          <Card className={cn(
-                            "transition-all shadow-md hover:shadow-lg flex flex-col relative",
-                            isCompleted
-                              ? "border-2 border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25"
-                              : isWorking
-                              ? "border-2 border-gray-300 bg-gray-100 hover:border-gray-400 hover:bg-gray-200 hover:shadow-gray-300/20"
-                              : "border-2 border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10"
-                          )}>
-                            {/* Role Badges - 우측 상단 (모바일: 원형 한글자) */}
-                            <div className="absolute top-2 right-2 flex flex-row gap-1 lg:flex-col lg:top-3 lg:right-3">
-                              {/* R&D 뱃지: role이 'rnd'이거나 'both'일 때만 표시 */}
-                              {role === 'rnd' && (
-                                <div className="w-7 h-7 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
-                                  <span className="lg:hidden">R</span>
-                                  <span className="hidden lg:inline">R&D</span>
-                                </div>
-                              )}
-                              {/* 현장팀 뱃지: role이 'field'이거나 'both'일 때만 표시 */}
-                              {role === 'field' && (
-                                <div className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
-                                  <span className="lg:hidden">현</span>
-                                  <span className="hidden lg:inline">현장팀</span>
-                                </div>
-                              )}
-                              {/* Both 뱃지: role이 'both'일 때만 두 뱃지 모두 표시 */}
-                              {role === 'both' && (
-                                <>
-                                  <div className="w-7 h-7 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
-                                    <span className="lg:hidden">R</span>
-                                    <span className="hidden lg:inline">R&D</span>
-                                  </div>
-                                  <div className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
-                                    <span className="lg:hidden">현</span>
-                                    <span className="hidden lg:inline">현장팀</span>
-                                  </div>
-                                </>
+                      return (
+                        <div key={subsection} className="border border-border/40 rounded-xl overflow-hidden bg-card/50 shadow-sm">
+                          {/* Subsection Header - 아코디언 버튼 */}
+                          <button
+                            onClick={() => toggleSubsection(sectionIndex, subIndex)}
+                            className="w-full px-4 py-4 lg:px-6 lg:py-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-accent/20 to-accent/10 text-accent text-sm font-bold shadow-sm border border-accent/30">
+                                {sectionIndex + 1}-{subIndex + 1}
+                              </div>
+                              <h3 className="text-base lg:text-lg font-semibold text-foreground/90">
+                                {subsection}
+                              </h3>
+                              <span className="text-sm text-muted-foreground">
+                                ({completedCount}/{totalCount})
+                              </span>
+                              {completedCount === totalCount && totalCount > 0 && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                                  완료
+                                </span>
                               )}
                             </div>
-                            
-                            <CardContent className="px-1 py-4 pr-1 lg:p-4 lg:pr-4 flex flex-col flex-1 h-full">
-                              <h3 className={cn(
-                                "font-semibold text-lg mb-3 leading-snug text-center flex items-center justify-center flex-1 pr-2",
-                                isCompleted
-                                  ? "text-blue-500"
-                                  : isWorking
-                                  ? "text-gray-700"
-                                  : "text-foreground"
-                              )}>
-                                {item.task}
-                              </h3>
-                              
-                              <div className="mt-0 relative mx-4 lg:mx-0">
-                                <button
-                                  onClick={() => handleStatusChange(item.id, currentStatus)}
-                                  className={cn(
-                                    "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all min-h-[36px]",
-                                    getStatusColor(currentStatus)
-                                  )}
-                                >
-                                  {getStatusIcon(currentStatus)}
-                                  <span className="text-xs">
-                                    {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
-                                  </span>
-                                  {isCompleted && item.completedAt && (
-                                    <span className="text-[11px] ml-1 opacity-90">
-                                      ({formatCompletedTime(item.completedAt)})
-                                    </span>
-                                  )}
-                                </button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Desktop: Horizontal Timeline Rows (lg and above) */}
-                <div className="hidden lg:block space-y-16">
-                  {Array.from({ length: Math.ceil(sectionItems.length / itemsPerRow) }).map((_, rowIndex) => {
-                    const rowItems = sectionItems.slice(rowIndex * itemsPerRow, (rowIndex + 1) * itemsPerRow)
-                    const isLastRow = rowIndex === Math.ceil(sectionItems.length / itemsPerRow) - 1
-                    const totalRows = Math.ceil(sectionItems.length / itemsPerRow)
-                    
-                    return (
-                      <div key={rowIndex} className="relative">
-                        {/* Horizontal Timeline Line with gradient on both sides - centered on badge */}
-                        <div className="absolute top-0 left-0 right-0 h-1 z-0">
-                          <div className="h-full bg-gradient-to-r from-transparent via-primary via-primary/90 to-transparent"></div>
-                        </div>
-                        
-                        <div className="grid grid-cols-3 gap-6 relative">
-                          {rowItems.map((item, itemIndex) => {
-                            const isLastInRow = itemIndex === rowItems.length - 1
-                            // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
-                            let role = (item.role || 'both').toString().trim().toLowerCase()
-                            // 유효하지 않은 role 값은 'both'로 설정
-                            if (role !== 'rnd' && role !== 'field' && role !== 'both') {
-                              console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item)
-                              role = 'both'
-                            }
-                            
-                            // status 기반으로 상태 판단 (단순화)
-                            const currentStatus = item.status || 'pending'
-                            const isCompleted = currentStatus === 'completed'
-                            const isWorking = currentStatus === 'working'
-                            
-                            const isFirstInRow = itemIndex === 0
-                            
-                            return (
-                              <div key={item.id} className="relative flex flex-col items-center h-full">
-                                {/* Timeline Node - centered on horizontal line */}
-                                <div className="relative z-10 mb-6 -mt-8">
-                                  <div className={cn(
-                                    "flex items-center justify-center w-16 h-16 rounded-full font-bold text-lg shadow-lg border-2 transition-all",
-                                    isCompleted
-                                      ? "bg-blue-500 text-white border-blue-600 shadow-blue-500/40"
-                                      : isWorking
-                                      ? "bg-gray-500 text-white border-gray-600 shadow-gray-500/30"
-                                      : "bg-white text-foreground border-border/60 shadow-md"
-                                  )}>
-                                    {item.step}
-                                  </div>
+                            <div className="flex items-center gap-2">
+                              {/* 진행률 바 */}
+                              <div className="hidden sm:flex items-center gap-2">
+                                <div className="w-20 lg:w-32 h-2 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary rounded-full transition-all duration-300"
+                                    style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                                  />
                                 </div>
-
-                                {/* Content Card */}
-                                <div className="w-full pt-6">
-                                  <Card className={cn(
-                                    "transition-all shadow-md hover:shadow-lg flex flex-col relative",
-                                    isCompleted
-                                      ? "border-2 border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25"
-                                      : isWorking
-                                      ? "border-2 border-gray-300 bg-gray-100 hover:border-gray-400 hover:bg-gray-200 hover:shadow-gray-300/20"
-                                      : "border-2 border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10"
-                                  )} style={{ height: '170px' }}>
-                                    {/* Role Badges - 우측 상단 */}
-                                    <div className="absolute top-3 right-3 flex flex-col gap-1.5">
-                                      {/* R&D 뱃지: role이 'rnd'이거나 'both'일 때만 표시 */}
-                                      {role === 'rnd' && (
-                                        <div className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
-                                          R&D
-                                        </div>
-                                      )}
-                                      {/* 현장팀 뱃지: role이 'field'이거나 'both'일 때만 표시 */}
-                                      {role === 'field' && (
-                                        <div className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
-                                          현장팀
-                                        </div>
-                                      )}
-                                      {/* Both 뱃지: role이 'both'일 때만 두 뱃지 모두 표시 */}
-                                      {role === 'both' && (
-                                        <>
-                                          <div className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
-                                            R&D
-                                          </div>
-                                          <div className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
-                                            현장팀
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                    
-                                    <CardContent className="p-4 flex flex-col flex-1 h-full">
-                                      <h3 className={cn(
-                                        "font-semibold text-lg mb-3 leading-snug text-center flex items-center justify-center flex-1",
-                                        isCompleted
-                                          ? "text-blue-500"
-                                          : isWorking
-                                          ? "text-gray-700"
-                                          : "text-foreground"
-                                      )}>
-                                        {item.task}
-                                      </h3>
-                                      
-                                      <div className="mt-0 relative">
-                                        <button
-                                          onClick={() => handleStatusChange(item.id, currentStatus)}
-                                          className={cn(
-                                            "w-full px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-xs font-semibold transition-all min-h-[36px]",
-                                            getStatusColor(currentStatus)
-                                          )}
-                                        >
-                                          {getStatusIcon(currentStatus)}
-                                          <span className="text-xs">
-                                            {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
-                                          </span>
-                                          {isCompleted && item.completedAt && (
-                                            <span className="text-[11px] ml-1 opacity-90">
-                                              ({formatCompletedTime(item.completedAt)})
-                                            </span>
-                                          )}
-                                        </button>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                </div>
+                                <span className="text-xs text-muted-foreground w-10">
+                                  {Math.round((completedCount / totalCount) * 100)}%
+                                </span>
                               </div>
-                            )
-                          })}
+                              {isExpanded ? (
+                                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </div>
+                          </button>
+
+                          {/* Subsection Content - 아코디언 본문 */}
+                          {isExpanded && (
+                            <div className="px-4 pb-6 pt-4 lg:px-6 lg:pb-8 lg:pt-6 border-t border-border/30 bg-background/50">
+                              {/* Mobile/Tablet: Vertical Timeline */}
+                              <div className="lg:hidden space-y-8 pl-8 relative">
+                                {/* Vertical Timeline Line - Mobile only - positioned left of center */}
+                                <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent"></div>
+
+                                {subsectionItems.map((item) => renderMobileItem(item))}
+                              </div>
+
+                              {/* Desktop: Horizontal Timeline Rows (lg and above) */}
+                              <div className="hidden lg:block space-y-16 pt-8">
+                                {renderDesktopRows(subsectionItems)}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  /* 중분류가 없는 경우 (대시보드 필드 테스트, 준공 및 문서) */
+                  <>
+                    {/* Mobile/Tablet: Vertical Timeline */}
+                    <div className="lg:hidden space-y-8 pl-8 relative">
+                      {/* Vertical Timeline Line - Mobile only - positioned left of center */}
+                      <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent"></div>
+
+                      {sectionItems.map((item) => renderMobileItem(item))}
+                    </div>
+
+                    {/* Desktop: Horizontal Timeline Rows (lg and above) */}
+                    <div className="hidden lg:block space-y-16">
+                      {renderDesktopRows(sectionItems)}
+                    </div>
+                  </>
+                )}
               </div>
             )
           })}
