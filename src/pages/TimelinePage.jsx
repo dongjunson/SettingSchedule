@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, X, Clock, ListChecks, ChevronDown, ChevronRight, LogIn, FileSpreadsheet } from 'lucide-react'
+import { ArrowLeft, Check, X, Clock, ListChecks, ChevronDown, ChevronRight, LogIn, FileSpreadsheet, User } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { useUserStore } from '../lib/userStore'
 import { Button } from '../components/ui/button'
@@ -68,7 +68,7 @@ export default function TimelinePage() {
       status: nextStatus,
       // completed 상태로 변경될 때만 completedAt과 completedBy 저장
       completedAt: nextStatus === 'completed' ? new Date().toISOString() : null,
-      completedBy: nextStatus === 'completed' ? currentUser.nickname : null
+      completedBy: nextStatus === 'completed' ? (currentUser?.nickname || null) : null
     }
     // zustand 스토어를 통해 업데이트 (자동으로 리렌더링됨)
     await updateTimelineItem(siteId, itemId, updates)
