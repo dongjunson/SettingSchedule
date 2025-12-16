@@ -1,12 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, X, Clock, ListChecks, ChevronDown, ChevronRight, User } from 'lucide-react'
+import { ArrowLeft, Check, X, Clock, ListChecks, ChevronDown, ChevronRight, LogIn, FileSpreadsheet } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { useUserStore } from '../lib/userStore'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { ProgressPieChart } from '../components/ProgressChart'
+import { DateRangePicker } from '../components/DateRangePicker'
 import { cn } from '../lib/utils'
+import { exportTimelineToExcel } from '../lib/exportExcel'
 
 export default function TimelinePage() {
   const { siteId } = useParams()
@@ -21,12 +23,6 @@ export default function TimelinePage() {
 
   // 사용자 스토어
   const currentUser = useUserStore((state) => state.currentUser)
-  const setUser = useUserStore((state) => state.setUser)
-  const clearUser = useUserStore((state) => state.clearUser)
-
-  // 닉네임 입력 모달 상태
-  const [showNicknameModal, setShowNicknameModal] = useState(false)
-  const [nicknameInput, setNicknameInput] = useState('')
 
   // 아코디언 상태 관리 (섹션-서브섹션 조합을 키로 사용)
   const [expandedSubsections, setExpandedSubsections] = useState({})
@@ -67,12 +63,6 @@ export default function TimelinePage() {
   }
 
   const handleStatusChange = async (itemId, currentStatus) => {
-    // 닉네임이 없으면 모달 표시
-    if (!currentUser?.nickname) {
-      setShowNicknameModal(true)
-      return
-    }
-
     const nextStatus = getNextStatus(currentStatus)
     const updates = {
       status: nextStatus,
@@ -84,13 +74,12 @@ export default function TimelinePage() {
     await updateTimelineItem(siteId, itemId, updates)
   }
 
-  // 닉네임 저장 핸들러
-  const handleSaveNickname = () => {
-    if (nicknameInput.trim()) {
-      setUser(nicknameInput.trim())
-      setShowNicknameModal(false)
-      setNicknameInput('')
+  const handleDateChange = async (itemId, dates) => {
+    const updates = {
+      startDate: dates.startDate || null,
+      completionDate: dates.completionDate || null
     }
+    await updateTimelineItem(siteId, itemId, updates)
   }
 
   // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
@@ -104,6 +93,14 @@ export default function TimelinePage() {
     const hours = String(date.getHours()).padStart(2, '0')
     const minutes = String(date.getMinutes()).padStart(2, '0')
     return `${month}/${day}`
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${month}.${day}`
   }
 
   const getStatusIcon = (status) => {
@@ -151,70 +148,9 @@ export default function TimelinePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* 닉네임 입력 모달 */}
-      {showNicknameModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-bold text-foreground mb-4">닉네임 입력</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              상태 변경 시 누가 체크했는지 기록됩니다.
-            </p>
-            <input
-              type="text"
-              value={nicknameInput}
-              onChange={(e) => setNicknameInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname()}
-              placeholder="닉네임을 입력하세요"
-              className="w-full px-4 py-2 border border-border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowNicknameModal(false)}
-                className="flex-1"
-              >
-                취소
-              </Button>
-              <Button
-                onClick={handleSaveNickname}
-                disabled={!nicknameInput.trim()}
-                className="flex-1"
-              >
-                저장
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-7xl mx-auto p-4 md:p-8">
         {/* Header */}
         <div className="mb-6">
-          {/* 사용자 정보 표시 */}
-          <div className="flex items-center justify-end mb-4">
-            {currentUser?.nickname ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
-                <User className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-primary">{currentUser.nickname}</span>
-                <button
-                  onClick={clearUser}
-                  className="ml-1 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  변경
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowNicknameModal(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full hover:bg-muted/80 transition-colors"
-              >
-                <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">닉네임 설정</span>
-              </button>
-            )}
-          </div>
-
           {/* Mobile: 점검 리스트 버튼을 상단에 배치 */}
           <div className="flex items-center justify-between mb-4 md:hidden">
             <Button
@@ -225,24 +161,49 @@ export default function TimelinePage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">프로젝트 목록으로</span>
             </Button>
-            <Button
-              onClick={() => navigate(`/site/${siteId}/checklist`)}
-              className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
-            >
-              <ListChecks className="mr-2 h-4 w-4" />
-              점검 리스트
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => navigate(`/site/${siteId}/checklist`)}
+                className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+              >
+                <ListChecks className="mr-2 h-4 w-4" />
+                점검 리스트
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => exportTimelineToExcel(site)}
+                size="icon"
+                title="엑셀로 출력"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/login')}
+                size="icon"
+              >
+                <LogIn className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Desktop: 기존 레이아웃 */}
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/')}
-            className="mb-4 hidden md:inline-flex"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            프로젝트 목록으로
-          </Button>
+          <div className="hidden md:flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/')}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              프로젝트 목록으로
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/login')}
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              로그인
+            </Button>
+          </div>
           
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
             <div>
@@ -252,13 +213,22 @@ export default function TimelinePage() {
               </h1>
               <p className="text-muted-foreground ml-4 text-sm sm:text-base">타임라인 항목을 클릭하여 상태를 변경할 수 있습니다</p>
             </div>
-            <Button 
-              onClick={() => navigate(`/site/${siteId}/checklist`)}
-              className="hidden md:inline-flex shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all mt-4 md:mt-0"
-            >
-              <ListChecks className="mr-2 h-4 w-4" />
-              점검 리스트
-            </Button>
+            <div className="hidden md:flex items-center gap-2 mt-4 md:mt-0">
+              <Button
+                onClick={() => navigate(`/site/${siteId}/checklist`)}
+                className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+              >
+                <ListChecks className="mr-2 h-4 w-4" />
+                점검 리스트
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => exportTimelineToExcel(site)}
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                엑셀 출력
+              </Button>
+            </div>
           </div>
 
           {/* Progress Cards with Pie Charts */}
@@ -287,13 +257,16 @@ export default function TimelinePage() {
                   <div className="flex-1">
                     <div className="text-sm font-semibold text-foreground mb-1">타임라인 진행도</div>
                     <div className="text-3xl font-bold text-accent mb-2">{progress.timeline}%</div>
-                    <div className="text-xs text-muted-foreground">타임라인 작업 진행률</div>
+                    <div className="text-xs text-muted-foreground">
+                      완료 {progress.completed || 0} / 진행중 {progress.working || 0} / 전체 {progress.total || 0}
+                    </div>
                   </div>
                   <div className="flex-shrink-0">
-                    <ProgressPieChart 
-                      value={progress.timeline} 
-                      name="타임라인" 
-                      color="rgb(37, 99, 235)" 
+                    <ProgressPieChart
+                      value={progress.timeline}
+                      name="타임라인"
+                      color="rgb(37, 99, 235)"
+                      workingValue={progress.total ? (progress.working / progress.total) * 100 : 0}
                     />
                   </div>
                 </div>
@@ -364,85 +337,89 @@ export default function TimelinePage() {
                   {/* Content Card */}
                   <div className="flex-1 min-w-0">
                     <Card className={cn(
-                      "transition-all shadow-md hover:shadow-lg flex flex-col relative",
+                      "transition-all duration-200 flex flex-col relative overflow-hidden",
+                      "bg-white border border-border/50 rounded-xl",
+                      "shadow-sm hover:shadow-md",
                       isCompleted
-                        ? "border-2 border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25"
+                        ? "ring-2 ring-blue-500/20 bg-gradient-to-br from-blue-50/50 to-white"
                         : isWorking
-                        ? "border-2 border-gray-300 bg-gray-100 hover:border-gray-400 hover:bg-gray-200 hover:shadow-gray-300/20"
-                        : "border-2 border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10"
+                        ? "ring-2 ring-gray-400/20 bg-gradient-to-br from-gray-50/50 to-white"
+                        : "hover:ring-2 hover:ring-primary/10"
                     )}>
-                      {/* Role Badges - 우측 상단 (모바일: 원형 한글자) */}
-                      <div className="absolute top-2 right-2 flex flex-row gap-1 lg:flex-col lg:top-3 lg:right-3">
-                        {/* R&D 뱃지: role이 'rnd'이거나 'both'일 때만 표시 */}
-                        {role === 'rnd' && (
-                          <div className="w-7 h-7 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
-                            <span className="lg:hidden">R</span>
-                            <span className="hidden lg:inline">R&D</span>
-                          </div>
-                        )}
-                        {/* 현장팀 뱃지: role이 'field'이거나 'both'일 때만 표시 */}
-                        {role === 'field' && (
-                          <div className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
-                            <span className="lg:hidden">현</span>
-                            <span className="hidden lg:inline">현장팀</span>
-                          </div>
-                        )}
-                        {/* Both 뱃지: role이 'both'일 때만 두 뱃지 모두 표시 */}
-                        {role === 'both' && (
-                          <>
-                            <div className="w-7 h-7 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
-                              <span className="lg:hidden">R</span>
-                              <span className="hidden lg:inline">R&D</span>
-                            </div>
-                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center lg:px-3 lg:py-1 lg:w-auto lg:h-auto">
-                              <span className="lg:hidden">현</span>
-                              <span className="hidden lg:inline">현장팀</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      <CardContent className="px-1 py-4 pr-1 lg:p-4 lg:pr-4 flex flex-col flex-1 h-full">
-                        <h3 className={cn(
-                          "font-semibold text-lg mb-3 leading-snug text-center flex items-center justify-center flex-1 pr-2",
-                          isCompleted
-                            ? "text-blue-500"
-                            : isWorking
-                            ? "text-gray-700"
-                            : "text-foreground"
-                        )}>
-                          {item.task}
-                        </h3>
-
-                        <div className="mt-0 relative mx-4 lg:mx-0">
-                          <button
-                            onClick={() => handleStatusChange(item.id, currentStatus)}
-                            className={cn(
-                              "w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all min-h-[36px]",
-                              getStatusColor(currentStatus)
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(currentStatus)}
-                              <span className="text-xs">
-                                {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
-                              </span>
-                            </div>
-                            {isCompleted && (item.completedAt || item.completedBy) && (
-                              <div className="flex items-center gap-1.5 text-[10px] opacity-90">
-                                {item.completedBy && (
-                                  <span className="flex items-center gap-0.5">
-                                    <User className="w-3 h-3" />
-                                    {item.completedBy}
-                                  </span>
-                                )}
-                                {item.completedAt && (
-                                  <span>({formatCompletedTime(item.completedAt)})</span>
-                                )}
-                              </div>
-                            )}
-                          </button>
+                      <CardContent className="p-4 flex flex-col gap-3">
+                        {/* 상단: 타이틀 (크게, 가운데 정렬) */}
+                        <div className="text-center py-3 border-b border-border/30">
+                          <h3 className={cn(
+                            "font-bold text-lg leading-tight",
+                            isCompleted
+                              ? "text-blue-600"
+                              : isWorking
+                              ? "text-gray-700"
+                              : "text-foreground"
+                          )}>
+                            {item.task}
+                          </h3>
                         </div>
+
+                        {/* 중단: Role 뱃지 (우측 정렬) */}
+                        <div className="flex justify-end gap-2 py-1">
+                          {(role === 'rnd' || role === 'both') && (
+                            <div className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-semibold shadow-sm">
+                              R&D
+                            </div>
+                          )}
+                          {(role === 'field' || role === 'both') && (
+                            <div className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold shadow-sm">
+                              현장팀
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 하단: 날짜 표시 */}
+                        <div className="w-full">
+                          <DateRangePicker
+                            startDate={item.startDate}
+                            completionDate={item.completionDate}
+                            onSelect={(dates) => handleDateChange(item.id, dates)}
+                            placeholder="기간 선택"
+                            className={cn(
+                              "w-full h-11 text-sm",
+                              (item.startDate || item.completionDate)
+                                ? "bg-gray-100 border-gray-300 text-gray-900 font-semibold hover:bg-gray-200 hover:border-gray-400"
+                                : ""
+                            )}
+                          />
+                        </div>
+
+                        {/* 하단: 상태 버튼 (전체 폭) */}
+                        <button
+                          onClick={() => handleStatusChange(item.id, currentStatus)}
+                          className={cn(
+                            "w-full px-4 py-3 rounded-lg flex items-center justify-between text-sm font-medium transition-all duration-200",
+                            "shadow-sm hover:shadow-md",
+                            getStatusColor(currentStatus)
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(currentStatus)}
+                            <span>
+                              {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
+                            </span>
+                          </div>
+                          {isCompleted && (item.completedAt || item.completedBy) && (
+                            <div className="flex items-center gap-1.5 text-xs opacity-90">
+                              {item.completedBy && (
+                                <span className="flex items-center gap-1">
+                                  <User className="w-3.5 h-3.5" />
+                                  {item.completedBy}
+                                </span>
+                              )}
+                              {item.completedAt && (
+                                <span>({formatCompletedTime(item.completedAt)})</span>
+                              )}
+                            </div>
+                          )}
+                        </button>
                       </CardContent>
                     </Card>
                   </div>
@@ -484,81 +461,89 @@ export default function TimelinePage() {
                   {/* Content Card */}
                   <div className="w-full pt-6">
                     <Card className={cn(
-                      "transition-all shadow-md hover:shadow-lg flex flex-col relative",
+                      "transition-all duration-200 flex flex-col relative overflow-hidden",
+                      "bg-white border border-border/50 rounded-xl",
+                      "shadow-sm hover:shadow-md",
                       isCompleted
-                        ? "border-2 border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25"
+                        ? "ring-2 ring-blue-500/20 bg-gradient-to-br from-blue-50/50 to-white"
                         : isWorking
-                        ? "border-2 border-gray-300 bg-gray-100 hover:border-gray-400 hover:bg-gray-200 hover:shadow-gray-300/20"
-                        : "border-2 border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10"
-                    )} style={{ height: '170px' }}>
-                      {/* Role Badges - 우측 상단 */}
-                      <div className="absolute top-3 right-3 flex flex-col gap-1.5">
-                        {/* R&D 뱃지: role이 'rnd'이거나 'both'일 때만 표시 */}
-                        {role === 'rnd' && (
-                          <div className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
-                            R&D
-                          </div>
-                        )}
-                        {/* 현장팀 뱃지: role이 'field'이거나 'both'일 때만 표시 */}
-                        {role === 'field' && (
-                          <div className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
-                            현장팀
-                          </div>
-                        )}
-                        {/* Both 뱃지: role이 'both'일 때만 두 뱃지 모두 표시 */}
-                        {role === 'both' && (
-                          <>
-                            <div className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                        ? "ring-2 ring-gray-400/20 bg-gradient-to-br from-gray-50/50 to-white"
+                        : "hover:ring-2 hover:ring-primary/10"
+                    )}>
+                      <CardContent className="p-5 flex flex-col gap-3">
+                        {/* 상단: 타이틀 (크게, 가운데 정렬) */}
+                        <div className="text-center py-3 border-b border-border/30">
+                          <h3 className={cn(
+                            "font-bold text-lg leading-tight",
+                            isCompleted
+                              ? "text-blue-600"
+                              : isWorking
+                              ? "text-gray-700"
+                              : "text-foreground"
+                          )}>
+                            {item.task}
+                          </h3>
+                        </div>
+
+                        {/* 중단: Role 뱃지 (우측 정렬) */}
+                        <div className="flex justify-end gap-2 py-1">
+                          {(role === 'rnd' || role === 'both') && (
+                            <div className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-semibold shadow-sm">
                               R&D
                             </div>
-                            <div className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-semibold shadow-sm flex items-center justify-center">
+                          )}
+                          {(role === 'field' || role === 'both') && (
+                            <div className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold shadow-sm">
                               현장팀
                             </div>
-                          </>
-                        )}
-                      </div>
-
-                      <CardContent className="p-4 flex flex-col flex-1 h-full">
-                        <h3 className={cn(
-                          "font-semibold text-base mb-3 leading-snug text-center flex items-center justify-center flex-1",
-                          isCompleted
-                            ? "text-blue-500"
-                            : isWorking
-                            ? "text-gray-700"
-                            : "text-foreground"
-                        )}>
-                          {item.task}
-                        </h3>
-
-                        <div className="mt-0 relative">
-                          <button
-                            onClick={() => handleStatusChange(item.id, currentStatus)}
-                            className={cn(
-                              "w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all min-h-[36px]",
-                              getStatusColor(currentStatus)
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(currentStatus)}
-                              <span className="text-xs">
-                                {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
-                              </span>
-                            </div>
-                            {isCompleted && (item.completedAt || item.completedBy) && (
-                              <div className="flex items-center gap-1.5 text-[10px] opacity-90">
-                                {item.completedBy && (
-                                  <span className="flex items-center gap-0.5">
-                                    <User className="w-3 h-3" />
-                                    {item.completedBy}
-                                  </span>
-                                )}
-                                {item.completedAt && (
-                                  <span>({formatCompletedTime(item.completedAt)})</span>
-                                )}
-                              </div>
-                            )}
-                          </button>
+                          )}
                         </div>
+
+                        {/* 하단: 날짜 표시 */}
+                        <div className="w-full">
+                          <DateRangePicker
+                            startDate={item.startDate}
+                            completionDate={item.completionDate}
+                            onSelect={(dates) => handleDateChange(item.id, dates)}
+                            placeholder="기간 선택"
+                            className={cn(
+                              "w-full h-11",
+                              (item.startDate || item.completionDate)
+                                ? "text-base bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400"
+                                : " text-sm"
+                            )}
+                          />
+                        </div>
+
+                        {/* 하단: 상태 버튼 (전체 폭) */}
+                        <button
+                          onClick={() => handleStatusChange(item.id, currentStatus)}
+                          className={cn(
+                            "w-full px-4 py-3 rounded-lg flex items-center justify-between text-sm font-medium transition-all duration-200",
+                            "shadow-sm hover:shadow-md",
+                            getStatusColor(currentStatus)
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(currentStatus)}
+                            <span>
+                              {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
+                            </span>
+                          </div>
+                          {isCompleted && (item.completedAt || item.completedBy) && (
+                            <div className="flex items-center gap-1.5 text-xs opacity-90">
+                              {item.completedBy && (
+                                <span className="flex items-center gap-1">
+                                  <User className="w-3.5 h-3.5" />
+                                  {item.completedBy}
+                                </span>
+                              )}
+                              {item.completedAt && (
+                                <span>({formatCompletedTime(item.completedAt)})</span>
+                              )}
+                            </div>
+                          )}
+                        </button>
                       </CardContent>
                     </Card>
                   </div>

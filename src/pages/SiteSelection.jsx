@@ -67,7 +67,7 @@ export default function SiteSelection() {
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-foreground mb-1">전체 진행도</div>
                       <div className="text-2xl font-bold text-primary mb-1">{site.progress.overall}%</div>
-                      <div className="grid grid-cols-2 gap-3 text-xs mt-2">
+                      <div className="grid grid-cols-3 gap-2 text-xs mt-2">
                         <div>
                           <div className="text-muted-foreground mb-0.5">타임라인</div>
                           <div className="font-semibold text-foreground">{site.progress.timeline}%</div>
@@ -76,13 +76,18 @@ export default function SiteSelection() {
                           <div className="text-muted-foreground mb-0.5">체크리스트</div>
                           <div className="font-semibold text-foreground">{site.progress.checklist}%</div>
                         </div>
+                        <div>
+                          <div className="text-muted-foreground mb-0.5">진행중</div>
+                          <div className="font-semibold text-gray-500">{site.progress.working || 0}개</div>
+                        </div>
                       </div>
                     </div>
                     <div className="flex-shrink-0">
-                      <ProgressPieChart 
-                        value={site.progress.overall} 
-                        name="전체" 
-                        color="rgb(59, 130, 246)" 
+                      <ProgressPieChart
+                        value={site.progress.overall}
+                        name="전체"
+                        color="rgb(59, 130, 246)"
+                        workingValue={site.progress.total ? (site.progress.working / site.progress.total) * 100 * 0.7 : 0}
                       />
                     </div>
                   </div>

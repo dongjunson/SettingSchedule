@@ -8,7 +8,7 @@ React + Vite + shadcn/ui + Tailwind CSS + Lucide + Recharts를 사용한 사업�
 - 📅 **타임라인 관리**: R&D와 현장팀의 작업 진행 상황을 실시간으로 체크하고 업데이트
 - ✅ **체크리스트 관리**: 시스템 기능 점검 항목을 체크하고 진행도 추적
 - 📊 **진행도 차트**: Recharts를 사용한 시각적인 진행도 차트
-- 💾 **로컬 저장소**: localStorage를 사용한 데이터 영구 저장
+- 💾 **상태 관리**: zustand를 사용한 상태 관리 및 API 연동
 
 ## 기술 스택
 
@@ -51,7 +51,8 @@ sample-schedule/
 │   │   ├── ui/          # shadcn/ui 컴포넌트
 │   │   └── ProgressChart.jsx
 │   ├── lib/
-│   │   ├── storage.js   # localStorage 관리
+│   │   ├── api.js       # API 통신
+│   │   ├── store.js     # zustand 상태 관리
 │   │   └── utils.js     # 유틸리티 함수
 │   ├── pages/
 │   │   ├── SiteSelection.jsx  # 사업소 선택 페이지
@@ -75,7 +76,7 @@ sample-schedule/
 
 ## 데이터 저장
 
-모든 데이터는 브라우저의 localStorage에 저장되며, 페이지를 새로고침해도 데이터가 유지됩니다.
+모든 데이터는 API 서버에 저장되며, zustand의 persist 미들웨어를 통해 브라우저의 localStorage에 캐시됩니다. 페이지를 새로고침해도 캐시된 데이터가 유지되며, 최신 데이터는 서버에서 가져옵니다.
 
 ## 라이선스
 
