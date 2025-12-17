@@ -103,3 +103,67 @@ export function exportTimelineToExcel(site) {
   const fileName = `${site.name}_타임라인_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
+
+/**
+ * 점검리스트 데이터를 엑셀 파일로 내보내기
+ * @param {Object} site - 사이트 데이터 (name, checklist 포함)
+ */
+export function exportChecklistToExcel(site) {
+  if (!site || !site.checklist) {
+    console.error('No checklist data to export');
+    return;
+  }
+
+  // 헤더 행
+  const headers = ['번호', '항목', '체크 여부'];
+
+  // 데이터 행 생성
+  const rows = site.checklist.map((item) => [
+    String(item.id).padStart(2, '0'), // 번호
+    item.text || '', // 항목
+    item.checked ? '체크됨' : '체크 안됨', // 체크 여부
+  ]);
+
+  // 진행도 정보 계산
+  const completedCount = site.checklist.filter((item) => item.checked).length;
+  const totalCount = site.checklist.length;
+  const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  // 워크시트 생성
+  const ws = XLSX.utils.aoa_to_sheet([
+    [site.name], // 사업소 이름
+    [`진행도: ${completedCount} / ${totalCount} 항목 완료 (${progress}%)`], // 진행도 정보
+    [
+      `출력일: ${new Date().toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })}`,
+    ], // 출력일
+    [], // 빈 행
+    headers, // 헤더
+    ...rows, // 데이터
+  ]);
+
+  // 열 너비 설정
+  ws['!cols'] = [
+    { wch: 10 }, // 번호
+    { wch: 80 }, // 항목
+    { wch: 15 }, // 체크 여부
+  ];
+
+  // 셀 병합 설정
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, // A1:C1 병합 (사업소 이름)
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }, // A2:C2 병합 (진행도)
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } }, // A3:C3 병합 (출력일)
+  ];
+
+  // 워크북 생성
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '점검리스트');
+
+  // 파일 다운로드
+  const fileName = `${site.name}_점검리스트_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}

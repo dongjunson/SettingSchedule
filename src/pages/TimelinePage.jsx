@@ -16,6 +16,7 @@ import { DateRangePicker } from '../components/DateRangePicker';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
 import { exportTimelineToExcel } from '../lib/exportExcel';
 import { useStore } from '../lib/store';
 import { useUserStore } from '../lib/userStore';
@@ -162,10 +163,10 @@ export default function TimelinePage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto p-4 md:p-8">
-        {/* Header */}
+        {/* Header - 고정 높이로 일관성 유지 */}
         <div className="mb-6">
           {/* Mobile: 점검 리스트 버튼을 상단에 배치 */}
-          <div className="flex items-center justify-between mb-4 md:hidden">
+          <div className="flex items-center justify-between mb-4 md:hidden h-16">
             <Button variant="ghost" onClick={() => navigate('/')} className="flex-shrink-0">
               <ArrowLeft className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">프로젝트 목록으로</span>
@@ -186,36 +187,63 @@ export default function TimelinePage() {
               >
                 <FileSpreadsheet className="h-4 w-4" />
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  logout();
-                  navigate('/login');
-                }}
-                size="icon"
-                title="로그아웃"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      logout();
+                      navigate('/login');
+                    }}
+                    size="icon"
+                    className="rounded-full bg-muted/50 hover:bg-muted border-muted-foreground/20 hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground"
+                    data-tooltip-trigger
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="end">
+                  <div className="space-y-1">
+                    <div className="font-semibold">{getEmail()}</div>
+                    <div className="text-xs text-muted-foreground">그룹: {getGroup()}</div>
+                    <div className="text-xs text-muted-foreground">클릭하여 로그아웃</div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
           {/* Desktop: 기존 레이아웃 */}
-          <div className="hidden md:flex items-center justify-between mb-4">
+          <div className="hidden md:flex items-center justify-between mb-4 h-16">
             <Button variant="ghost" onClick={() => navigate('/')}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               프로젝트 목록으로
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              로그아웃 ({getEmail()})
-            </Button>
+            <div className="flex-shrink-0 flex items-center">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full bg-muted/50 hover:bg-muted border-muted-foreground/20 hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      logout();
+                      navigate('/login');
+                    }}
+                    data-tooltip-trigger
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="end">
+                  <div className="space-y-1">
+                    <div className="font-semibold">{getEmail()}</div>
+                    <div className="text-xs text-muted-foreground">그룹: {getGroup()}</div>
+                    <div className="text-xs text-muted-foreground">클릭하여 로그아웃</div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">

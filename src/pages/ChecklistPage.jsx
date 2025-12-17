@@ -1,10 +1,11 @@
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, FileSpreadsheet } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Checkbox } from '../components/ui/checkbox';
+import { exportChecklistToExcel } from '../lib/exportExcel';
 import { useStore } from '../lib/store';
 import { cn } from '../lib/utils';
 
@@ -68,10 +69,22 @@ export default function ChecklistPage() {
           </Button>
 
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-foreground mb-2">{site.name} 점검 리스트</h1>
-            <p className="text-muted-foreground">
-              시스템 기능 점검 항목을 확인하세요 (총 {totalCount}개 항목)
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">{site.name} 점검 리스트</h1>
+                <p className="text-muted-foreground">
+                  시스템 기능 점검 항목을 확인하세요 (총 {totalCount}개 항목)
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => exportChecklistToExcel(site)}
+                className="flex-shrink-0"
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                엑셀 출력
+              </Button>
+            </div>
           </div>
 
           {/* Progress Card with Pie Chart */}
@@ -102,12 +115,20 @@ export default function ChecklistPage() {
         {/* Checklist Items */}
         <Card className="border border-border/60">
           <CardContent className="p-6">
-            <div className="space-y-4">
+            {/* 테이블 헤더 */}
+            <div className="grid grid-cols-[80px_1fr_80px] gap-4 mb-4 pb-3 border-b border-border/60">
+              <div className="text-sm font-semibold text-muted-foreground">번호</div>
+              <div className="text-sm font-semibold text-muted-foreground">항목</div>
+              <div className="text-sm font-semibold text-muted-foreground text-center">체크</div>
+            </div>
+
+            {/* 체크리스트 항목 */}
+            <div className="space-y-3">
               {site.checklist.map((item) => (
                 <div
                   key={item.id}
                   className={cn(
-                    'flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all shadow-md hover:shadow-lg',
+                    'grid grid-cols-[80px_1fr_80px] gap-4 items-start p-4 rounded-lg border-2 cursor-pointer transition-all shadow-md hover:shadow-lg',
                     item.checked
                       ? 'border-blue-500/70 bg-blue-50/60 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-500/25'
                       : 'border-border/60 bg-white hover:border-primary/40 hover:bg-white hover:shadow-primary/10'
@@ -122,32 +143,37 @@ export default function ChecklistPage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="mt-1">
-                    <Checkbox
-                      checked={item.checked}
-                      onCheckedChange={(checked) => handleCheckboxChange(item.id, checked)}
-                    />
+                  {/* 번호 */}
+                  <div className="flex items-center">
+                    <span
+                      className={cn(
+                        'text-base font-semibold',
+                        item.checked ? 'text-blue-600' : 'text-muted-foreground'
+                      )}
+                    >
+                      No. {String(item.id).padStart(2, '0')}
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={cn(
-                          'text-sm font-semibold',
-                          item.checked ? 'text-blue-500' : 'text-muted-foreground'
-                        )}
-                      >
-                        No. {String(item.id).padStart(2, '0')}
-                      </span>
-                      {item.checked && <Check className="h-4 w-4 text-blue-500" />}
-                    </div>
+
+                  {/* 항목 텍스트 */}
+                  <div className="flex items-center">
                     <p
                       className={cn(
-                        'leading-relaxed',
-                        item.checked ? 'text-blue-500' : 'text-foreground'
+                        'leading-relaxed text-base font-medium',
+                        item.checked ? 'text-blue-600' : 'text-foreground'
                       )}
                     >
                       {item.text}
                     </p>
+                  </div>
+
+                  {/* 체크 상태 */}
+                  <div className="flex items-center justify-center">
+                    {item.checked ? (
+                      <Check className="h-6 w-6 text-blue-600 font-bold" />
+                    ) : (
+                      <span className="text-muted-foreground text-base">-</span>
+                    )}
                   </div>
                 </div>
               ))}

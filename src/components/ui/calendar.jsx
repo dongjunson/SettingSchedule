@@ -127,7 +127,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
 
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 gap-0 mb-2">
-        {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+        {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
           <div
             key={day}
             className={cn(

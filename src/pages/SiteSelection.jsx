@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
 import { useStore } from '../lib/store';
 import { useUserStore } from '../lib/userStore';
 
@@ -19,6 +20,7 @@ export default function SiteSelection() {
   // 사용자 스토어
   const logout = useUserStore((state) => state.logout);
   const getEmail = useUserStore((state) => state.getEmail);
+  const getGroup = useUserStore((state) => state.getGroup);
 
   useEffect(() => {
     const loadSitesData = async () => {
@@ -45,25 +47,63 @@ export default function SiteSelection() {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">JRI PMS</h1>
-              <p className="text-muted-foreground">
-                Project Management System
-                <br />
-                프로젝트를 선택하여 타임라인과 체크리스트를 확인하세요
-              </p>
+          {/* 헤더 영역 - 로고와 타이틀을 위한 개선된 레이아웃 */}
+          <div className="mb-8 pb-6 border-b border-border/40">
+            <div className="flex items-start justify-between gap-6">
+              {/* 왼쪽: 로고와 타이틀 영역 */}
+              <div className="flex items-start gap-4 flex-1">
+                {/* 로고 이미지 영역 */}
+                <div className="flex-shrink-0">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-center shadow-sm">
+                    {/* 로고 이미지가 추가되면 아래 주석을 해제하고 img 태그를 사용하세요 */}
+                    {/* <img src="/logo.png" alt="Logo" className="w-full h-full object-contain p-2" /> */}
+                    <Building2 className="h-10 w-10 md:h-12 md:w-12 text-primary/60" />
+                  </div>
+                </div>
+
+                {/* 타이틀과 설명 */}
+                <div className="flex-1 pt-1">
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 leading-tight">
+                    JRI PMS
+                  </h1>
+                  <div className="space-y-1">
+                    <p className="text-base md:text-lg text-muted-foreground font-medium">
+                      Project Management System
+                    </p>
+                    <p className="text-sm md:text-base text-muted-foreground">
+                      프로젝트를 선택하여 타임라인과 체크리스트를 확인하세요
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 오른쪽: 로그아웃 버튼 */}
+              <div className="flex-shrink-0 flex items-center pt-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full bg-muted/50 hover:bg-muted border-muted-foreground/20 hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        logout();
+                        navigate('/login');
+                      }}
+                      data-tooltip-trigger
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="end">
+                    <div className="space-y-1">
+                      <div className="font-semibold">{getEmail()}</div>
+                      <div className="text-xs text-muted-foreground">그룹: {getGroup()}</div>
+                      <div className="text-xs text-muted-foreground">클릭하여 로그아웃</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              로그아웃 ({getEmail()})
-            </Button>
           </div>
         </div>
 

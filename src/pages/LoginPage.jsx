@@ -103,11 +103,12 @@ export default function LoginPage() {
         </Card>
 
         {/* 알림 메시지 */}
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border/60 text-muted-foreground text-sm">
-          <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-muted-foreground" />
-          <span className="leading-relaxed">
-            본 시스템은 허가받은 사용자만 접근 가능한 시스템입니다. <br /> 아이디 발급 문의
-            marx@saferobo.co.kr
+        <div className="flex items-center justify-center gap-0 p-4 rounded-lg bg-muted/50 border border-border/60 text-muted-foreground text-sm">
+          <Info className="flex-shrink-0 text-muted-foreground mt-1.5 mr-[33px] mb-1.5 ml-1 w-7 h-7" />
+          <span className="leading-relaxed box-content mt-0 mb-0">
+            본 시스템은 허가받은 사용자만 접근 가능합니다.
+            <br />
+            아이디 발급 문의 marx@saferobo.co.kr
           </span>
         </div>
       </div>
