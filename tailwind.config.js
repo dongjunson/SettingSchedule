@@ -1,10 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: false,
-  content: [
-    './index.html',
-    './src/**/*.{js,ts,jsx,tsx}',
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -42,11 +39,11 @@ export default {
         input: 'var(--input)',
         ring: 'var(--ring)',
         chart: {
-          '1': 'var(--chart-1)',
-          '2': 'var(--chart-2)',
-          '3': 'var(--chart-3)',
-          '4': 'var(--chart-4)',
-          '5': 'var(--chart-5)',
+          1: 'var(--chart-1)',
+          2: 'var(--chart-2)',
+          3: 'var(--chart-3)',
+          4: 'var(--chart-4)',
+          5: 'var(--chart-5)',
         },
       },
       fontFamily: {
@@ -62,4 +59,4 @@ export default {
     },
   },
   plugins: [],
-}
+};

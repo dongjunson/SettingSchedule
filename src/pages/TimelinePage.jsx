@@ -1,134 +1,147 @@
-import { useParams, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, X, Clock, ListChecks, ChevronDown, ChevronRight, LogIn, FileSpreadsheet, User } from 'lucide-react'
-import { useStore } from '../lib/store'
-import { useUserStore } from '../lib/userStore'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { ProgressPieChart } from '../components/ProgressChart'
-import { DateRangePicker } from '../components/DateRangePicker'
-import { cn } from '../lib/utils'
-import { exportTimelineToExcel } from '../lib/exportExcel'
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  FileSpreadsheet,
+  ListChecks,
+  LogOut,
+  User,
+  X,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { DateRangePicker } from '../components/DateRangePicker';
+import { ProgressPieChart } from '../components/ProgressChart';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { exportTimelineToExcel } from '../lib/exportExcel';
+import { useStore } from '../lib/store';
+import { useUserStore } from '../lib/userStore';
+import { cn } from '../lib/utils';
 
 export default function TimelinePage() {
-  const { siteId } = useParams()
-  const navigate = useNavigate()
+  const { siteId } = useParams();
+  const navigate = useNavigate();
 
   // zustand 스토어에서 상태와 함수 가져오기
-  const site = useStore((state) => state.sites.find(s => s.id === siteId))
-  const loading = useStore((state) => state.loading)
-  const loadSite = useStore((state) => state.loadSite)
-  const updateTimelineItem = useStore((state) => state.updateTimelineItem)
-  const calculateProgress = useStore((state) => state.calculateProgress)
+  const site = useStore((state) => state.sites.find((s) => s.id === siteId));
+  const loading = useStore((state) => state.loading);
+  const loadSite = useStore((state) => state.loadSite);
+  const updateTimelineItem = useStore((state) => state.updateTimelineItem);
+  const calculateProgress = useStore((state) => state.calculateProgress);
 
   // 사용자 스토어
-  const currentUser = useUserStore((state) => state.currentUser)
+  const currentUser = useUserStore((state) => state.currentUser);
+  const logout = useUserStore((state) => state.logout);
+  const getEmail = useUserStore((state) => state.getEmail);
+  const getGroup = useUserStore((state) => state.getGroup);
 
   // 아코디언 상태 관리 (섹션-서브섹션 조합을 키로 사용)
-  const [expandedSubsections, setExpandedSubsections] = useState({})
+  const [expandedSubsections, setExpandedSubsections] = useState({});
 
   // 서브섹션 토글 함수
   const toggleSubsection = (sectionIndex, subIndex) => {
-    const key = `${sectionIndex}-${subIndex}`
-    setExpandedSubsections(prev => ({
+    const key = `${sectionIndex}-${subIndex}`;
+    setExpandedSubsections((prev) => ({
       ...prev,
-      [key]: !prev[key]
-    }))
-  }
+      [key]: !prev[key],
+    }));
+  };
 
   // 서브섹션이 확장되어 있는지 확인 (기본값: 모두 확장)
   const isSubsectionExpanded = (sectionIndex, subIndex) => {
-    const key = `${sectionIndex}-${subIndex}`
-    return expandedSubsections[key] !== false // 기본값 true
-  }
+    const key = `${sectionIndex}-${subIndex}`;
+    return expandedSubsections[key] !== false; // 기본값 true
+  };
 
   useEffect(() => {
     const loadSiteData = async () => {
       try {
         // 새로고침 시마다 항상 API에서 최신 데이터 가져오기
-        await loadSite(siteId, true)
+        await loadSite(siteId, true);
       } catch (error) {
-        console.error('Failed to load site data:', error)
+        console.error('Failed to load site data:', error);
       }
-    }
+    };
     // 페이지 마운트 시 (새로고침 포함) 항상 API 호출
-    loadSiteData()
-  }, [siteId, loadSite])
+    loadSiteData();
+  }, [siteId, loadSite]);
 
   const getNextStatus = (currentStatus) => {
     // pending -> working -> completed -> pending 순환
-    const statusOrder = ['pending', 'working', 'completed']
-    const currentIndex = statusOrder.indexOf(currentStatus || 'pending')
-    return statusOrder[(currentIndex + 1) % statusOrder.length]
-  }
+    const statusOrder = ['pending', 'working', 'completed'];
+    const currentIndex = statusOrder.indexOf(currentStatus || 'pending');
+    return statusOrder[(currentIndex + 1) % statusOrder.length];
+  };
 
   const handleStatusChange = async (itemId, currentStatus) => {
-    const nextStatus = getNextStatus(currentStatus)
+    const nextStatus = getNextStatus(currentStatus);
     const updates = {
       status: nextStatus,
-      // completed 상태로 변경될 때만 completedAt과 completedBy 저장
+      // completed 상태로 변경될 때만 completedAt과 completedBy 저장 (그룹 정보 저장)
       completedAt: nextStatus === 'completed' ? new Date().toISOString() : null,
-      completedBy: nextStatus === 'completed' ? (currentUser?.nickname || null) : null
-    }
+      completedBy: nextStatus === 'completed' ? getGroup() || null : null,
+    };
     // zustand 스토어를 통해 업데이트 (자동으로 리렌더링됨)
-    await updateTimelineItem(siteId, itemId, updates)
-  }
+    await updateTimelineItem(siteId, itemId, updates);
+  };
 
   const handleDateChange = async (itemId, dates) => {
     const updates = {
       startDate: dates.startDate || null,
-      completionDate: dates.completionDate || null
-    }
-    await updateTimelineItem(siteId, itemId, updates)
-  }
+      completionDate: dates.completionDate || null,
+    };
+    await updateTimelineItem(siteId, itemId, updates);
+  };
 
   // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
-  const progress = site ? calculateProgress(siteId) : { timeline: 0, checklist: 0, overall: 0 }
-  
+  const progress = site ? calculateProgress(siteId) : { timeline: 0, checklist: 0, overall: 0 };
+
   const formatCompletedTime = (completedAt) => {
-    if (!completedAt) return null
-    const date = new Date(completedAt)
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    return `${month}/${day}`
-  }
+    if (!completedAt) return null;
+    const date = new Date(completedAt);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day}`;
+  };
 
   const formatDate = (dateString) => {
-    if (!dateString) return null
-    const date = new Date(dateString)
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${month}.${day}`
-  }
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${month}.${day}`;
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
-        return <Check className="h-4 w-4" />
+        return <Check className="h-4 w-4" />;
       case 'working':
-        return <Clock className="h-4 w-4" />
+        return <Clock className="h-4 w-4" />;
       case 'pending':
-        return <X className="h-4 w-4" />
+        return <X className="h-4 w-4" />;
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
-        return 'bg-blue-500 text-white hover:bg-blue-600 hover:text-white shadow-md shadow-blue-500/30'
+        return 'bg-blue-500 text-white hover:bg-blue-600 hover:text-white shadow-md shadow-blue-500/30';
       case 'working':
-        return 'bg-gray-500 text-white hover:bg-gray-600 hover:text-white shadow-md shadow-gray-500/30'
+        return 'bg-gray-500 text-white hover:bg-gray-600 hover:text-white shadow-md shadow-gray-500/30';
       case 'pending':
-        return 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground border border-border/60'
+        return 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground border border-border/60';
       default:
-        return 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground border border-border/60'
+        return 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground border border-border/60';
     }
-  }
-
+  };
 
   if (loading) {
     return (
@@ -137,14 +150,14 @@ export default function TimelinePage() {
           <p className="text-muted-foreground">데이터를 불러오는 중...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!site) {
-    return <div className="p-8">프로젝트를 찾을 수 없습니다.</div>
+    return <div className="p-8">프로젝트를 찾을 수 없습니다.</div>;
   }
 
-  const sections = [...new Set(site.timeline.map(item => item.section))]
+  const sections = [...new Set(site.timeline.map((item) => item.section))];
 
   return (
     <div className="min-h-screen bg-background">
@@ -153,11 +166,7 @@ export default function TimelinePage() {
         <div className="mb-6">
           {/* Mobile: 점검 리스트 버튼을 상단에 배치 */}
           <div className="flex items-center justify-between mb-4 md:hidden">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/')}
-              className="flex-shrink-0"
-            >
+            <Button variant="ghost" onClick={() => navigate('/')} className="flex-shrink-0">
               <ArrowLeft className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">프로젝트 목록으로</span>
             </Button>
@@ -179,39 +188,45 @@ export default function TimelinePage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/login')}
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
                 size="icon"
+                title="로그아웃"
               >
-                <LogIn className="h-4 w-4" />
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
           {/* Desktop: 기존 레이아웃 */}
           <div className="hidden md:flex items-center justify-between mb-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/')}
-            >
+            <Button variant="ghost" onClick={() => navigate('/')}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               프로젝트 목록으로
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate('/login')}
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
             >
-              <LogIn className="mr-2 h-4 w-4" />
-              로그인
+              <LogOut className="mr-2 h-4 w-4" />
+              로그아웃 ({getEmail()})
             </Button>
           </div>
-          
+
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 flex items-center gap-3">
-                <span className="w-1 h-8 bg-primary rounded-full"></span>
+                <span className="w-1 h-8 bg-primary rounded-full" />
                 {site.name} 프로젝트 타임라인
               </h1>
-              <p className="text-muted-foreground ml-4 text-sm sm:text-base">타임라인 항목을 클릭하여 상태를 변경할 수 있습니다</p>
+              <p className="text-muted-foreground ml-4 text-sm sm:text-base">
+                타임라인 항목을 클릭하여 상태를 변경할 수 있습니다
+              </p>
             </div>
             <div className="hidden md:flex items-center gap-2 mt-4 md:mt-0">
               <Button
@@ -221,10 +236,7 @@ export default function TimelinePage() {
                 <ListChecks className="mr-2 h-4 w-4" />
                 점검 리스트
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => exportTimelineToExcel(site)}
-              >
+              <Button variant="outline" onClick={() => exportTimelineToExcel(site)}>
                 <FileSpreadsheet className="mr-2 h-4 w-4" />
                 엑셀 출력
               </Button>
@@ -242,10 +254,10 @@ export default function TimelinePage() {
                     <div className="text-xs text-muted-foreground">전체 작업 진행률</div>
                   </div>
                   <div className="flex-shrink-0">
-                    <ProgressPieChart 
-                      value={progress.overall} 
-                      name="전체" 
-                      color="rgb(59, 130, 246)" 
+                    <ProgressPieChart
+                      value={progress.overall}
+                      name="전체"
+                      color="rgb(59, 130, 246)"
                     />
                   </div>
                 </div>
@@ -255,10 +267,13 @@ export default function TimelinePage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="text-sm font-semibold text-foreground mb-1">타임라인 진행도</div>
+                    <div className="text-sm font-semibold text-foreground mb-1">
+                      타임라인 진행도
+                    </div>
                     <div className="text-3xl font-bold text-accent mb-2">{progress.timeline}%</div>
                     <div className="text-xs text-muted-foreground">
-                      완료 {progress.completed || 0} / 진행중 {progress.working || 0} / 전체 {progress.total || 0}
+                      완료 {progress.completed || 0} / 진행중 {progress.working || 0} / 전체{' '}
+                      {progress.total || 0}
                     </div>
                   </div>
                   <div className="flex-shrink-0">
@@ -276,15 +291,19 @@ export default function TimelinePage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="text-sm font-semibold text-foreground mb-1">체크리스트 진행도</div>
-                    <div className="text-3xl font-bold text-chart-3 mb-2">{progress.checklist}%</div>
+                    <div className="text-sm font-semibold text-foreground mb-1">
+                      체크리스트 진행도
+                    </div>
+                    <div className="text-3xl font-bold text-chart-3 mb-2">
+                      {progress.checklist}%
+                    </div>
                     <div className="text-xs text-muted-foreground">체크리스트 완료율</div>
                   </div>
                   <div className="flex-shrink-0">
-                    <ProgressPieChart 
-                      value={progress.checklist} 
-                      name="체크리스트" 
-                      color="rgb(96, 165, 250)" 
+                    <ProgressPieChart
+                      value={progress.checklist}
+                      name="체크리스트"
+                      color="rgb(96, 165, 250)"
                     />
                   </div>
                 </div>
@@ -296,67 +315,75 @@ export default function TimelinePage() {
         {/* Horizontal Timeline */}
         <div className="space-y-12">
           {sections.map((section, sectionIndex) => {
-            const sectionItems = site.timeline.filter(item => item.section === section)
+            const sectionItems = site.timeline.filter((item) => item.section === section);
             // 중분류(subsection) 목록 추출
-            const subsections = [...new Set(sectionItems.map(item => item.subsection).filter(Boolean))]
-            const hasSubsections = subsections.length > 0
+            const subsections = [
+              ...new Set(sectionItems.map((item) => item.subsection).filter(Boolean)),
+            ];
+            const hasSubsections = subsections.length > 0;
             // 한 행에 표시할 항목 수 (반응형)
-            const itemsPerRow = 3
+            const itemsPerRow = 3;
 
             // 아이템 렌더링 함수 (모바일용)
             const renderMobileItem = (item) => {
               // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
-              let role = (item.role || 'both').toString().trim().toLowerCase()
+              let role = (item.role || 'both').toString().trim().toLowerCase();
               // 유효하지 않은 role 값은 'both'로 설정
               if (role !== 'rnd' && role !== 'field' && role !== 'both') {
-                console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item)
-                role = 'both'
+                console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item);
+                role = 'both';
               }
 
               // status 기반으로 상태 판단 (단순화)
-              const currentStatus = item.status || 'pending'
-              const isCompleted = currentStatus === 'completed'
-              const isWorking = currentStatus === 'working'
+              const currentStatus = item.status || 'pending';
+              const isCompleted = currentStatus === 'completed';
+              const isWorking = currentStatus === 'working';
 
               return (
                 <div key={item.id} className="relative flex items-start gap-4">
                   {/* Timeline Node - 좌측 정렬, 세로선 왼쪽에 맞춤 */}
                   <div className="relative z-10 flex-shrink-0 -ml-6">
-                    <div className={cn(
-                      "flex items-center justify-center w-16 h-16 rounded-full font-bold text-sm shadow-lg border-2 transition-all",
-                      isCompleted
-                        ? "bg-blue-500 text-white border-blue-600 shadow-blue-500/40"
-                        : isWorking
-                        ? "bg-gray-500 text-white border-gray-600 shadow-gray-500/30"
-                        : "bg-white text-foreground border-border/60 shadow-md"
-                    )}>
+                    <div
+                      className={cn(
+                        'flex items-center justify-center w-16 h-16 rounded-full font-bold text-sm shadow-lg border-2 transition-all',
+                        isCompleted
+                          ? 'bg-blue-500 text-white border-blue-600 shadow-blue-500/40'
+                          : isWorking
+                            ? 'bg-gray-500 text-white border-gray-600 shadow-gray-500/30'
+                            : 'bg-white text-foreground border-border/60 shadow-md'
+                      )}
+                    >
                       {item.step}
                     </div>
                   </div>
 
                   {/* Content Card */}
                   <div className="flex-1 min-w-0">
-                    <Card className={cn(
-                      "transition-all duration-200 flex flex-col relative overflow-hidden",
-                      "bg-white border border-border/50 rounded-xl",
-                      "shadow-sm hover:shadow-md",
-                      isCompleted
-                        ? "ring-2 ring-blue-500/20 bg-gradient-to-br from-blue-50/50 to-white"
-                        : isWorking
-                        ? "ring-2 ring-gray-400/20 bg-gradient-to-br from-gray-50/50 to-white"
-                        : "hover:ring-2 hover:ring-primary/10"
-                    )}>
+                    <Card
+                      className={cn(
+                        'transition-all duration-200 flex flex-col relative overflow-hidden',
+                        'bg-white border border-border/50 rounded-xl',
+                        'shadow-sm hover:shadow-md',
+                        isCompleted
+                          ? 'ring-2 ring-blue-500/20 bg-gradient-to-br from-blue-50/50 to-white'
+                          : isWorking
+                            ? 'ring-2 ring-gray-400/20 bg-gradient-to-br from-gray-50/50 to-white'
+                            : 'hover:ring-2 hover:ring-primary/10'
+                      )}
+                    >
                       <CardContent className="p-4 flex flex-col gap-3">
                         {/* 상단: 타이틀 (크게, 가운데 정렬) */}
                         <div className="text-center py-3 border-b border-border/30">
-                          <h3 className={cn(
-                            "font-bold text-lg leading-tight",
-                            isCompleted
-                              ? "text-blue-600"
-                              : isWorking
-                              ? "text-gray-700"
-                              : "text-foreground"
-                          )}>
+                          <h3
+                            className={cn(
+                              'font-bold text-lg leading-tight',
+                              isCompleted
+                                ? 'text-blue-600'
+                                : isWorking
+                                  ? 'text-gray-700'
+                                  : 'text-foreground'
+                            )}
+                          >
                             {item.task}
                           </h3>
                         </div>
@@ -370,7 +397,7 @@ export default function TimelinePage() {
                           )}
                           {(role === 'field' || role === 'both') && (
                             <div className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold shadow-sm">
-                              현장팀
+                              사업지원팀
                             </div>
                           )}
                         </div>
@@ -383,27 +410,32 @@ export default function TimelinePage() {
                             onSelect={(dates) => handleDateChange(item.id, dates)}
                             placeholder="기간 선택"
                             className={cn(
-                              "w-full h-11 text-sm",
-                              (item.startDate || item.completionDate)
-                                ? "bg-gray-100 border-gray-300 text-gray-900 font-semibold hover:bg-gray-200 hover:border-gray-400"
-                                : ""
+                              'w-full h-11 text-sm',
+                              item.startDate || item.completionDate
+                                ? 'bg-gray-100 border-gray-300 text-gray-900 font-semibold hover:bg-gray-200 hover:border-gray-400'
+                                : ''
                             )}
                           />
                         </div>
 
                         {/* 하단: 상태 버튼 (전체 폭) */}
                         <button
+                          type="button"
                           onClick={() => handleStatusChange(item.id, currentStatus)}
                           className={cn(
-                            "w-full px-4 py-3 rounded-lg flex items-center justify-between text-sm font-medium transition-all duration-200",
-                            "shadow-sm hover:shadow-md",
+                            'w-full px-4 py-3 rounded-lg flex items-center justify-between text-sm font-medium transition-all duration-200',
+                            'shadow-sm hover:shadow-md',
                             getStatusColor(currentStatus)
                           )}
                         >
                           <div className="flex items-center gap-2">
                             {getStatusIcon(currentStatus)}
                             <span>
-                              {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
+                              {currentStatus === 'completed'
+                                ? '완료'
+                                : currentStatus === 'working'
+                                  ? '작업중'
+                                  : '대기'}
                             </span>
                           </div>
                           {isCompleted && (item.completedAt || item.completedBy) && (
@@ -424,63 +456,69 @@ export default function TimelinePage() {
                     </Card>
                   </div>
                 </div>
-              )
-            }
+              );
+            };
 
             // 아이템 렌더링 함수 (데스크톱용)
             const renderDesktopItem = (item) => {
               // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
-              let role = (item.role || 'both').toString().trim().toLowerCase()
+              let role = (item.role || 'both').toString().trim().toLowerCase();
               // 유효하지 않은 role 값은 'both'로 설정
               if (role !== 'rnd' && role !== 'field' && role !== 'both') {
-                console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item)
-                role = 'both'
+                console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item);
+                role = 'both';
               }
 
               // status 기반으로 상태 판단 (단순화)
-              const currentStatus = item.status || 'pending'
-              const isCompleted = currentStatus === 'completed'
-              const isWorking = currentStatus === 'working'
+              const currentStatus = item.status || 'pending';
+              const isCompleted = currentStatus === 'completed';
+              const isWorking = currentStatus === 'working';
 
               return (
                 <div key={item.id} className="relative flex flex-col items-center h-full">
                   {/* Timeline Node - centered on horizontal line */}
                   <div className="relative z-10 mb-6 -mt-8">
-                    <div className={cn(
-                      "flex items-center justify-center w-16 h-16 rounded-full font-bold text-sm shadow-lg border-2 transition-all",
-                      isCompleted
-                        ? "bg-blue-500 text-white border-blue-600 shadow-blue-500/40"
-                        : isWorking
-                        ? "bg-gray-500 text-white border-gray-600 shadow-gray-500/30"
-                        : "bg-white text-foreground border-border/60 shadow-md"
-                    )}>
+                    <div
+                      className={cn(
+                        'flex items-center justify-center w-16 h-16 rounded-full font-bold text-sm shadow-lg border-2 transition-all',
+                        isCompleted
+                          ? 'bg-blue-500 text-white border-blue-600 shadow-blue-500/40'
+                          : isWorking
+                            ? 'bg-gray-500 text-white border-gray-600 shadow-gray-500/30'
+                            : 'bg-white text-foreground border-border/60 shadow-md'
+                      )}
+                    >
                       {item.step}
                     </div>
                   </div>
 
                   {/* Content Card */}
                   <div className="w-full pt-6">
-                    <Card className={cn(
-                      "transition-all duration-200 flex flex-col relative overflow-hidden",
-                      "bg-white border border-border/50 rounded-xl",
-                      "shadow-sm hover:shadow-md",
-                      isCompleted
-                        ? "ring-2 ring-blue-500/20 bg-gradient-to-br from-blue-50/50 to-white"
-                        : isWorking
-                        ? "ring-2 ring-gray-400/20 bg-gradient-to-br from-gray-50/50 to-white"
-                        : "hover:ring-2 hover:ring-primary/10"
-                    )}>
+                    <Card
+                      className={cn(
+                        'transition-all duration-200 flex flex-col relative overflow-hidden',
+                        'bg-white border border-border/50 rounded-xl',
+                        'shadow-sm hover:shadow-md',
+                        isCompleted
+                          ? 'ring-2 ring-blue-500/20 bg-gradient-to-br from-blue-50/50 to-white'
+                          : isWorking
+                            ? 'ring-2 ring-gray-400/20 bg-gradient-to-br from-gray-50/50 to-white'
+                            : 'hover:ring-2 hover:ring-primary/10'
+                      )}
+                    >
                       <CardContent className="p-5 flex flex-col gap-3">
                         {/* 상단: 타이틀 (크게, 가운데 정렬) */}
                         <div className="text-center py-3 border-b border-border/30">
-                          <h3 className={cn(
-                            "font-bold text-lg leading-tight",
-                            isCompleted
-                              ? "text-blue-600"
-                              : isWorking
-                              ? "text-gray-700"
-                              : "text-foreground"
-                          )}>
+                          <h3
+                            className={cn(
+                              'font-bold text-lg leading-tight',
+                              isCompleted
+                                ? 'text-blue-600'
+                                : isWorking
+                                  ? 'text-gray-700'
+                                  : 'text-foreground'
+                            )}
+                          >
                             {item.task}
                           </h3>
                         </div>
@@ -494,7 +532,7 @@ export default function TimelinePage() {
                           )}
                           {(role === 'field' || role === 'both') && (
                             <div className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold shadow-sm">
-                              현장팀
+                              사업지원팀
                             </div>
                           )}
                         </div>
@@ -507,27 +545,32 @@ export default function TimelinePage() {
                             onSelect={(dates) => handleDateChange(item.id, dates)}
                             placeholder="기간 선택"
                             className={cn(
-                              "w-full h-11",
-                              (item.startDate || item.completionDate)
-                                ? "text-base bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400"
-                                : " text-sm"
+                              'w-full h-11',
+                              item.startDate || item.completionDate
+                                ? 'text-base bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200 hover:border-gray-400'
+                                : ' text-sm'
                             )}
                           />
                         </div>
 
                         {/* 하단: 상태 버튼 (전체 폭) */}
                         <button
+                          type="button"
                           onClick={() => handleStatusChange(item.id, currentStatus)}
                           className={cn(
-                            "w-full px-4 py-3 rounded-lg flex items-center justify-between text-sm font-medium transition-all duration-200",
-                            "shadow-sm hover:shadow-md",
+                            'w-full px-4 py-3 rounded-lg flex items-center justify-between text-sm font-medium transition-all duration-200',
+                            'shadow-sm hover:shadow-md',
                             getStatusColor(currentStatus)
                           )}
                         >
                           <div className="flex items-center gap-2">
                             {getStatusIcon(currentStatus)}
                             <span>
-                              {currentStatus === 'completed' ? '완료' : currentStatus === 'working' ? '작업중' : '대기'}
+                              {currentStatus === 'completed'
+                                ? '완료'
+                                : currentStatus === 'working'
+                                  ? '작업중'
+                                  : '대기'}
                             </span>
                           </div>
                           {isCompleted && (item.completedAt || item.completedBy) && (
@@ -548,28 +591,33 @@ export default function TimelinePage() {
                     </Card>
                   </div>
                 </div>
-              )
-            }
+              );
+            };
 
             // 데스크톱 행 렌더링 함수
             const renderDesktopRows = (items) => {
-              return Array.from({ length: Math.ceil(items.length / itemsPerRow) }).map((_, rowIndex) => {
-                const rowItems = items.slice(rowIndex * itemsPerRow, (rowIndex + 1) * itemsPerRow)
+              return Array.from({ length: Math.ceil(items.length / itemsPerRow) }).map(
+                (_, rowIndex) => {
+                  const rowItems = items.slice(
+                    rowIndex * itemsPerRow,
+                    (rowIndex + 1) * itemsPerRow
+                  );
 
-                return (
-                  <div key={rowIndex} className="relative">
-                    {/* Horizontal Timeline Line with gradient on both sides - centered on badge */}
-                    <div className="absolute top-0 left-0 right-0 h-1 z-0">
-                      <div className="h-full bg-gradient-to-r from-transparent via-primary via-primary/90 to-transparent"></div>
-                    </div>
+                  return (
+                    <div key={`row-${rowItems[0]?.id || rowIndex}`} className="relative">
+                      {/* Horizontal Timeline Line with gradient on both sides - centered on badge */}
+                      <div className="absolute top-0 left-0 right-0 h-1 z-0">
+                        <div className="h-full bg-gradient-to-r from-transparent via-primary via-primary/90 to-transparent" />
+                      </div>
 
-                    <div className="grid grid-cols-3 gap-6 relative">
-                      {rowItems.map((item) => renderDesktopItem(item))}
+                      <div className="grid grid-cols-3 gap-6 relative">
+                        {rowItems.map((item) => renderDesktopItem(item))}
+                      </div>
                     </div>
-                  </div>
-                )
-              })
-            }
+                  );
+                }
+              );
+            };
 
             return (
               <div key={section} className="space-y-6">
@@ -587,15 +635,23 @@ export default function TimelinePage() {
                 {hasSubsections ? (
                   <div className="space-y-4">
                     {subsections.map((subsection, subIndex) => {
-                      const subsectionItems = sectionItems.filter(item => item.subsection === subsection)
-                      const isExpanded = isSubsectionExpanded(sectionIndex, subIndex)
-                      const completedCount = subsectionItems.filter(item => item.status === 'completed').length
-                      const totalCount = subsectionItems.length
+                      const subsectionItems = sectionItems.filter(
+                        (item) => item.subsection === subsection
+                      );
+                      const isExpanded = isSubsectionExpanded(sectionIndex, subIndex);
+                      const completedCount = subsectionItems.filter(
+                        (item) => item.status === 'completed'
+                      ).length;
+                      const totalCount = subsectionItems.length;
 
                       return (
-                        <div key={subsection} className="border border-border/40 rounded-xl overflow-hidden bg-card/50 shadow-sm">
+                        <div
+                          key={subsection}
+                          className="border border-border/40 rounded-xl overflow-hidden bg-card/50 shadow-sm"
+                        >
                           {/* Subsection Header - 아코디언 버튼 */}
                           <button
+                            type="button"
                             onClick={() => toggleSubsection(sectionIndex, subIndex)}
                             className="w-full px-4 py-4 lg:px-6 lg:py-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
                           >
@@ -642,7 +698,7 @@ export default function TimelinePage() {
                               {/* Mobile/Tablet: Vertical Timeline */}
                               <div className="lg:hidden space-y-8 pl-8 relative">
                                 {/* Vertical Timeline Line - Mobile only - positioned left of center */}
-                                <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent"></div>
+                                <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent" />
 
                                 {subsectionItems.map((item) => renderMobileItem(item))}
                               </div>
@@ -654,7 +710,7 @@ export default function TimelinePage() {
                             </div>
                           )}
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 ) : (
@@ -663,7 +719,7 @@ export default function TimelinePage() {
                     {/* Mobile/Tablet: Vertical Timeline */}
                     <div className="lg:hidden space-y-8 pl-8 relative">
                       {/* Vertical Timeline Line - Mobile only - positioned left of center */}
-                      <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent"></div>
+                      <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent" />
 
                       {sectionItems.map((item) => renderMobileItem(item))}
                     </div>
@@ -675,10 +731,10 @@ export default function TimelinePage() {
                   </>
                 )}
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }
