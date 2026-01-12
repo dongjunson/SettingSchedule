@@ -773,6 +773,12 @@ const getInitialData = () => ({
       timeline: getInitialTimeline(),
       checklist: getInitialChecklist(),
     },
+    {
+      id: 'suwon',
+      name: '수원 하수도 사업소',
+      timeline: getInitialTimeline(),
+      checklist: getInitialChecklist(),
+    },
   ],
 });
 
