@@ -1,17 +1,28 @@
-import { AlertCircle, Info, Lock, Mail } from 'lucide-react';
+import { AlertCircle, Info, Lock, User } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { useUserStore } from '../lib/userStore';
 
+const REMEMBER_ID_KEY = 'remembered_user_id';
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const login = useUserStore((state) => state.login);
 
-  // 테스트 버전: 기본값으로 테스트 계정 정보 세팅
-  const [email, setEmail] = useState('user1@example.com');
-  const [password, setPassword] = useState('password123');
+  const rememberedId = (() => {
+    try {
+      return localStorage.getItem(REMEMBER_ID_KEY) || '';
+    } catch {
+      return '';
+    }
+  })();
+
+  // 기본값: 저장된 아이디가 있으면 사용, 없으면 rnd
+  const [userId, setUserId] = useState(rememberedId || 'rnd');
+  const [rememberId, setRememberId] = useState(Boolean(rememberedId));
+  const [password, setPassword] = useState('joy&rising');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,9 +32,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = login(email, password);
+      const result = await login(userId, password);
 
       if (result.success) {
+        try {
+          if (rememberId) localStorage.setItem(REMEMBER_ID_KEY, userId);
+          else localStorage.removeItem(REMEMBER_ID_KEY);
+        } catch {
+          // ignore storage errors
+        }
         // 로그인 성공 시 메인 페이지로 이동
         navigate('/', { replace: true });
       } else {
@@ -56,20 +73,20 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-foreground">
-                  이메일
+                <label htmlFor="userId" className="text-sm font-medium text-foreground">
+                  아이디
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@example.com"
+                    id="userId"
+                    type="text"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    placeholder="admin | rnd | system"
                     className="w-full pl-10 pr-4 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     required
-                    autoComplete="email"
+                    autoComplete="username"
                     disabled={loading}
                   />
                 </div>
@@ -94,6 +111,16 @@ export default function LoginPage() {
                   />
                 </div>
               </div>
+
+              <label className="flex items-center gap-2 text-sm text-foreground select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberId}
+                  onChange={(e) => setRememberId(e.target.checked)}
+                  disabled={loading}
+                />
+                아이디 저장
+              </label>
 
               <Button type="submit" className="w-full" size="lg" disabled={loading}>
                 {loading ? '로그인 중...' : '로그인'}

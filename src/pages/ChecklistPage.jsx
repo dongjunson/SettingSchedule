@@ -124,7 +124,7 @@ export default function ChecklistPage() {
 
             {/* 체크리스트 항목 */}
             <div className="space-y-3">
-              {site.checklist.map((item) => (
+              {site.checklist.map((item, index) => (
                 <div
                   key={item.id}
                   className={cn(
@@ -151,7 +151,7 @@ export default function ChecklistPage() {
                         item.checked ? 'text-blue-600' : 'text-muted-foreground'
                       )}
                     >
-                      No. {String(item.id).padStart(2, '0')}
+                      No. {String(index + 1).padStart(2, '0')}
                     </span>
                   </div>
 

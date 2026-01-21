@@ -3,13 +3,25 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
+  createSiteOnServer,
+  deleteSiteOnServer,
   fetchAllSitesData,
   fetchSiteTimelineData,
+  repairSiteTimelineOnServer,
   updateChecklistItemOnServer,
   updateTimelineItemOnServer,
 } from './api';
+import {
+  getNewSiteChecklistTemplate,
+  getNewSiteTimelineTemplate,
+  normalizeNewSiteTimelineForDb,
+} from './siteTemplates';
 
 const STORAGE_KEY = 'site_timeline_data';
+
+const hasSupabaseEnv = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 // 초기 타임라인 데이터
 const getInitialTimeline = () => [
@@ -735,6 +747,8 @@ const getInitialChecklist = () => [
   },
 ];
 
+// 신규 사업소 템플릿은 `src/lib/siteTemplates.js`에서 관리합니다.
+
 // 100% 완료된 타임라인 데이터 생성
 const getCompletedTimeline = () => {
   return getInitialTimeline().map((item) => ({
@@ -783,30 +797,35 @@ const getInitialData = () => ({
 });
 
 // 체크리스트 검증 및 업데이트 헬퍼 함수
+// - Supabase 사용 시 checklist_items.id는 글로벌 PK(IDENTITY)라서 1~19를 보장하지 않습니다.
+// - 따라서 "id 범위" 기반 필터링은 제거하고, 기본 체크리스트 텍스트 순서로만 정렬/보정합니다.
 const validateAndUpdateChecklist = (checklist) => {
-  if (!checklist || checklist.length !== 19) {
-    const newChecklist = getInitialChecklist();
-    if (checklist) {
-      for (const newItem of newChecklist) {
-        const existingItem = checklist.find(
-          (item) => item.id === newItem.id || item.text === newItem.text
-        );
-        if (existingItem) {
-          newItem.checked = existingItem.checked;
-        }
-      }
-    }
-    return newChecklist;
+  if (!Array.isArray(checklist) || checklist.length === 0) {
+    return getInitialChecklist();
   }
 
-  // id가 1-19 범위를 벗어나는 항목이 있으면 제거
-  const validIds = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
-  const hasInvalidId = checklist.some((item) => !validIds.has(item.id));
-  if (hasInvalidId) {
-    return checklist.filter((item) => validIds.has(item.id));
+  // 기본형 보정 (최소 필드 보장)
+  const normalized = checklist
+    .filter((item) => item && item.id != null && typeof item.text === 'string')
+    .map((item) => ({
+      ...item,
+      checked: Boolean(item.checked),
+    }));
+
+  if (normalized.length === 0) {
+    return getInitialChecklist();
   }
 
-  return checklist;
+  // 기본 체크리스트 텍스트 순서를 기준으로 정렬 (일관된 표시/엑셀 출력용)
+  const base = getInitialChecklist();
+  const orderMap = new Map(base.map((b, idx) => [b.text, idx]));
+  normalized.sort(
+    (a, b) =>
+      (orderMap.get(a.text) ?? Number.POSITIVE_INFINITY) -
+      (orderMap.get(b.text) ?? Number.POSITIVE_INFINITY)
+  );
+
+  return normalized;
 };
 
 // zustand 스토어 생성
@@ -814,7 +833,8 @@ export const useStore = create(
   persist(
     (set, get) => ({
       // 상태
-      sites: getInitialData().sites,
+      // Supabase 환경에서는 DB가 단일 소스 of truth. 초기 mock 데이터를 섞지 않습니다.
+      sites: hasSupabaseEnv ? [] : getInitialData().sites,
       loading: false,
       error: null,
 
@@ -841,16 +861,28 @@ export const useStore = create(
             checklist: validateAndUpdateChecklist(site.checklist),
           }));
 
-          // 초기 데이터와 병합 (초기 데이터의 프로젝트가 API에 없으면 추가)
-          const initialData = getInitialData();
-          const initialSiteIds = new Set(sites.map((s) => s.id));
-          const missingInitialSites = initialData.sites.filter((s) => !initialSiteIds.has(s.id));
-          const mergedSites = [...sites, ...missingInitialSites];
+          // Supabase 환경에서는 DB 데이터만 사용 (초기 mock 섞지 않음)
+          const mergedSites = hasSupabaseEnv
+            ? sites
+            : (() => {
+                const initialData = getInitialData();
+                const initialSiteIds = new Set(sites.map((s) => s.id));
+                const missingInitialSites = initialData.sites.filter(
+                  (s) => !initialSiteIds.has(s.id)
+                );
+                return [...sites, ...missingInitialSites];
+              })();
 
           set({ sites: mergedSites, loading: false });
           return { sites: mergedSites };
         } catch (error) {
           console.error('Failed to load data from API:', error);
+          // Supabase 환경에서는 API 실패 시 fallback을 최소화 (빈 상태 유지)
+          if (hasSupabaseEnv) {
+            set({ sites: [], loading: false, error: error?.message || String(error) });
+            return { sites: [] };
+          }
+
           // API 실패 시 초기 데이터 사용 (새로 추가한 프로젝트 포함)
           const initialData = getInitialData();
           // 기존 캐시된 데이터와 초기 데이터를 병합 (초기 데이터 우선)
@@ -911,6 +943,10 @@ export const useStore = create(
           return site;
         } catch (error) {
           console.error('Failed to fetch site data from API:', error);
+          if (hasSupabaseEnv) {
+            set({ loading: false, error: error?.message || String(error) });
+            throw error;
+          }
           // API 실패 시에만 캐시에서 가져오기
           const cachedSite = get().sites.find((s) => s.id === siteId);
           if (cachedSite) {
@@ -932,7 +968,7 @@ export const useStore = create(
           return null;
         }
 
-        const itemIndex = site.timeline.findIndex((item) => item.id === itemId);
+        const itemIndex = site.timeline.findIndex((item) => String(item.id) === String(itemId));
         if (itemIndex === -1) {
           console.error('Timeline item not found:', itemId);
           return null;
@@ -952,9 +988,23 @@ export const useStore = create(
 
         // 서버에 업데이트 시도 (실패해도 로컬 상태는 유지)
         try {
-          await updateTimelineItemOnServer(siteId, itemId, updates);
+          const serverItem = await updateTimelineItemOnServer(siteId, itemId, updates);
+          // Supabase 환경에서는 서버가 정답이므로, 업데이트된 row를 받아서 해당 아이템만 교체합니다.
+          if (hasSupabaseEnv && serverItem) {
+            const refreshedSites = get().sites.map((s) => {
+              if (s.id !== siteId) return s;
+              return {
+                ...s,
+                timeline: s.timeline.map((it) =>
+                  String(it.id) === String(itemId) ? serverItem : it
+                ),
+              };
+            });
+            set({ sites: refreshedSites });
+          }
         } catch (error) {
           console.error('Failed to update timeline item on server:', error);
+          set({ error: error?.message || String(error) });
           // 서버 업데이트 실패 시에도 로컬 상태는 유지
         }
 
@@ -971,7 +1021,7 @@ export const useStore = create(
           return null;
         }
 
-        const itemIndex = site.checklist.findIndex((item) => item.id === itemId);
+        const itemIndex = site.checklist.findIndex((item) => String(item.id) === String(itemId));
         if (itemIndex === -1) {
           console.error('Checklist item not found:', itemId);
           return null;
@@ -991,9 +1041,22 @@ export const useStore = create(
 
         // 서버에 업데이트 시도 (실패해도 로컬 상태는 유지)
         try {
-          await updateChecklistItemOnServer(siteId, itemId, checked);
+          const serverItem = await updateChecklistItemOnServer(siteId, itemId, checked);
+          if (hasSupabaseEnv && serverItem) {
+            const refreshedSites = get().sites.map((s) => {
+              if (s.id !== siteId) return s;
+              return {
+                ...s,
+                checklist: s.checklist.map((it) =>
+                  String(it.id) === String(itemId) ? serverItem : it
+                ),
+              };
+            });
+            set({ sites: refreshedSites });
+          }
         } catch (error) {
           console.error('Failed to update checklist item on server:', error);
+          set({ error: error?.message || String(error) });
           // 서버 업데이트 실패 시에도 로컬 상태는 유지
         }
 
@@ -1012,12 +1075,13 @@ export const useStore = create(
         ).length;
         const timelineWorking = site.timeline.filter((item) => item.status === 'working').length;
         // 완료된 항목만 진행도에 포함
-        const timelineProgress = (timelineCompleted / timelineTotal) * 100;
+        const timelineProgress = timelineTotal > 0 ? (timelineCompleted / timelineTotal) * 100 : 0;
 
         // 체크리스트 진행도
         const checklistTotal = site.checklist.length;
         const checklistCompleted = site.checklist.filter((item) => item.checked).length;
-        const checklistProgress = (checklistCompleted / checklistTotal) * 100;
+        const checklistProgress =
+          checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
 
         // 전체 진행도 (타임라인 70%, 체크리스트 30%)
         const overallProgress = timelineProgress * 0.7 + checklistProgress * 0.3;
@@ -1037,6 +1101,64 @@ export const useStore = create(
       getSite: (siteId) => {
         return get().sites.find((site) => site.id === siteId) || null;
       },
+
+      // 신규 사업소 생성 (admin 전용 UI에서 호출)
+      createSite: async ({ name }) => {
+        if (!hasSupabaseEnv) {
+          throw new Error('Supabase 환경변수가 설정되지 않아 DB에 사업소를 추가할 수 없습니다.');
+        }
+        const siteName = (name || '').toString().trim();
+        if (!siteName) throw new Error('사업소 이름을 입력해주세요.');
+
+        // 한글/공백 등에서도 안전한 id 생성 (중복 방지)
+        const slug = siteName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+        const siteId = slug && slug !== '-' ? slug : `site-${Date.now()}`;
+
+        const created = await createSiteOnServer({
+          id: siteId,
+          name: siteName,
+          timelineItems: normalizeNewSiteTimelineForDb(getNewSiteTimelineTemplate()),
+          checklistItems: getNewSiteChecklistTemplate(),
+        });
+
+        // 로컬 상태에 반영
+        const currentSites = get().sites;
+        set({ sites: [...currentSites.filter((s) => s.id !== created.id), created] });
+        return created;
+      },
+
+      deleteSite: async (siteId) => {
+        if (!hasSupabaseEnv) {
+          throw new Error('Supabase 환경변수가 설정되지 않아 DB에서 사업소를 삭제할 수 없습니다.');
+        }
+        const id = (siteId || '').toString().trim();
+        if (!id) throw new Error('삭제할 사업소 id가 올바르지 않습니다.');
+
+        await deleteSiteOnServer(id);
+        set({ sites: get().sites.filter((s) => s.id !== id) });
+        return { ok: true };
+      },
+
+      // (admin 도구) 특정 사업소의 타임라인 누락 step을 템플릿 기준으로 보정
+      repairSiteTimeline: async (siteId) => {
+        if (!hasSupabaseEnv) {
+          throw new Error('Supabase 환경변수가 설정되지 않아 DB를 보정할 수 없습니다.');
+        }
+        const id = (siteId || '').toString().trim();
+        if (!id) throw new Error('사업소 id가 올바르지 않습니다.');
+
+        const { inserted } = await repairSiteTimelineOnServer(
+          id,
+          normalizeNewSiteTimelineForDb(getNewSiteTimelineTemplate())
+        );
+
+        // 최신 데이터로 재로드
+        await get().loadSite(id, true);
+        return { inserted };
+      },
     }),
     {
       name: STORAGE_KEY,
@@ -1045,6 +1167,7 @@ export const useStore = create(
       // localStorage에서 복원할 때 초기 데이터의 프로젝트들이 항상 포함되도록 함
       onRehydrateStorage: () => (state) => {
         if (state) {
+          if (hasSupabaseEnv) return;
           const initialData = getInitialData();
           const initialSiteIds = new Set(state.sites.map((s) => s.id));
           const missingInitialSites = initialData.sites.filter((s) => !initialSiteIds.has(s.id));

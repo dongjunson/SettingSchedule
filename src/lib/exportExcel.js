@@ -118,8 +118,8 @@ export function exportChecklistToExcel(site) {
   const headers = ['번호', '항목', '체크 여부'];
 
   // 데이터 행 생성
-  const rows = site.checklist.map((item) => [
-    String(item.id).padStart(2, '0'), // 번호
+  const rows = site.checklist.map((item, index) => [
+    String(index + 1).padStart(2, '0'), // 번호 (표시용: 1부터)
     item.text || '', // 항목
     item.checked ? '체크됨' : '체크 안됨', // 체크 여부
   ]);

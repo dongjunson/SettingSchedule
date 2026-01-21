@@ -3,10 +3,13 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  ChevronsDown,
+  ChevronsUp,
   Clock,
   FileSpreadsheet,
   ListChecks,
   LogOut,
+  Settings,
   User,
   X,
 } from 'lucide-react';
@@ -36,8 +39,11 @@ export default function TimelinePage() {
   // 사용자 스토어
   const currentUser = useUserStore((state) => state.currentUser);
   const logout = useUserStore((state) => state.logout);
-  const getEmail = useUserStore((state) => state.getEmail);
+  const getId = useUserStore((state) => state.getId);
   const getGroup = useUserStore((state) => state.getGroup);
+  const isAdmin = getId() === 'admin';
+
+  const repairSiteTimeline = useStore((state) => state.repairSiteTimeline);
 
   // 아코디언 상태 관리 (섹션-서브섹션 조합을 키로 사용)
   const [expandedSubsections, setExpandedSubsections] = useState({});
@@ -49,6 +55,17 @@ export default function TimelinePage() {
       ...prev,
       [key]: !prev[key],
     }));
+  };
+
+  // 특정 섹션의 모든 서브섹션 펼침/닫힘
+  const setAllSubsectionsExpanded = (sectionIndex, subsectionCount, expanded) => {
+    setExpandedSubsections((prev) => {
+      const next = { ...prev };
+      for (let i = 0; i < subsectionCount; i += 1) {
+        next[`${sectionIndex}-${i}`] = expanded ? true : false;
+      }
+      return next;
+    });
   };
 
   // 서브섹션이 확장되어 있는지 확인 (기본값: 모두 확장)
@@ -95,6 +112,25 @@ export default function TimelinePage() {
       completionDate: dates.completionDate || null,
     };
     await updateTimelineItem(siteId, itemId, updates);
+  };
+
+  const [repairing, setRepairing] = useState(false);
+
+  const handleRepairTimeline = async () => {
+    if (!siteId) return;
+    setRepairing(true);
+    try {
+      const res = await repairSiteTimeline(siteId);
+      if (res?.inserted > 0) {
+        window.alert(`누락된 타임라인 ${res.inserted}개 항목을 복구했습니다.`);
+      } else {
+        window.alert('누락된 타임라인 항목이 없습니다.');
+      }
+    } catch (err) {
+      window.alert(err?.message || '타임라인 복구에 실패했습니다.');
+    } finally {
+      setRepairing(false);
+    }
   };
 
   // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
@@ -158,7 +194,29 @@ export default function TimelinePage() {
     return <div className="p-8">프로젝트를 찾을 수 없습니다.</div>;
   }
 
-  const sections = [...new Set(site.timeline.map((item) => item.section))];
+  // 섹션 순서는 DB 반환 순서에 의존하지 않도록 step 기준으로 정렬한 뒤 도출
+  const parseStepForSort = (step) => {
+    const s = (step || '').toString();
+    const m = s.match(/^(\d+)-(\d+)$/);
+    if (!m) return [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
+    return [Number(m[1]), Number(m[2])];
+  };
+
+  const sortedTimeline = [...site.timeline].sort((a, b) => {
+    const [a1, a2] = parseStepForSort(a.step);
+    const [b1, b2] = parseStepForSort(b.step);
+    return a1 !== b1 ? a1 - b1 : a2 - b2;
+  });
+
+  const sections = [];
+  const sectionSeen = new Set();
+  for (const item of sortedTimeline) {
+    const key = item.section;
+    if (!sectionSeen.has(key)) {
+      sectionSeen.add(key);
+      sections.push(key);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -204,7 +262,7 @@ export default function TimelinePage() {
                 </TooltipTrigger>
                 <TooltipContent side="bottom" align="end">
                   <div className="space-y-1">
-                    <div className="font-semibold">{getEmail()}</div>
+                    <div className="font-semibold">{getId()}</div>
                     <div className="text-xs text-muted-foreground">그룹: {getGroup()}</div>
                     <div className="text-xs text-muted-foreground">클릭하여 로그아웃</div>
                   </div>
@@ -219,7 +277,18 @@ export default function TimelinePage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               프로젝트 목록으로
             </Button>
-            <div className="flex-shrink-0 flex items-center">
+            <div className="flex-shrink-0 flex items-center gap-2">
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  onClick={handleRepairTimeline}
+                  disabled={repairing}
+                  title="누락된 타임라인 항목을 템플릿 기준으로 복구"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  {repairing ? '복구 중...' : '누락 복구'}
+                </Button>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -237,7 +306,7 @@ export default function TimelinePage() {
                 </TooltipTrigger>
                 <TooltipContent side="bottom" align="end">
                   <div className="space-y-1">
-                    <div className="font-semibold">{getEmail()}</div>
+                    <div className="font-semibold">{getId()}</div>
                     <div className="text-xs text-muted-foreground">그룹: {getGroup()}</div>
                     <div className="text-xs text-muted-foreground">클릭하여 로그아웃</div>
                   </div>
@@ -341,14 +410,21 @@ export default function TimelinePage() {
         </div>
 
         {/* Horizontal Timeline */}
-        <div className="space-y-12">
+        <div className="space-y-12 mt-8">
           {sections.map((section, sectionIndex) => {
-            const sectionItems = site.timeline.filter((item) => item.section === section);
+            // 섹션별 아이템은 전체 정렬된 타임라인에서 필터링 (순서 고정)
+            const sectionItems = sortedTimeline.filter((item) => item.section === section);
+
             // 중분류(subsection) 목록 추출
-            const subsections = [
-              ...new Set(sectionItems.map((item) => item.subsection).filter(Boolean)),
-            ];
-            const hasSubsections = subsections.length > 0;
+            // - "중분류가 하나도 없는 섹션"은 기존처럼 중분류 없는 UI로 렌더링
+            // - 중분류가 일부만 있는 섹션은 비어있는 항목을 '기타'로 묶어서 누락 방지
+            const subsectionValues = sectionItems.map((item) => (item.subsection ?? '').toString().trim());
+            const nonEmptySubsections = [...new Set(subsectionValues.filter((v) => v))];
+            const hasSubsections = nonEmptySubsections.length > 0;
+            const hasEmptySubsection = subsectionValues.some((v) => !v);
+            const subsections = hasSubsections
+              ? [...nonEmptySubsections, ...(hasEmptySubsection ? ['기타'] : [])]
+              : [];
             // 한 행에 표시할 항목 수 (반응형)
             const itemsPerRow = 3;
 
@@ -651,21 +727,54 @@ export default function TimelinePage() {
               <div key={section} className="space-y-6">
                 {/* Section Header */}
                 <div className="mb-16">
-                  <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold shadow-md shadow-primary/20 border-2 border-primary/30">
-                      {sectionIndex + 1}
-                    </div>
-                    <span>{section}</span>
-                  </h2>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold shadow-md shadow-primary/20 border-2 border-primary/30">
+                        {sectionIndex + 1}
+                      </div>
+                      <span>{section}</span>
+                    </h2>
+
+                    {/* UX: 구축 및 설치 섹션은 서브섹션이 많아 전체 펼침/닫힘 제공 */}
+                    {section === '구축 및 설치' && hasSubsections && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setAllSubsectionsExpanded(sectionIndex, subsections.length, true)
+                          }
+                        >
+                          <ChevronsDown className="mr-2 h-4 w-4" />
+                          모두 펼침
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setAllSubsectionsExpanded(sectionIndex, subsections.length, false)
+                          }
+                        >
+                          <ChevronsUp className="mr-2 h-4 w-4" />
+                          모두 닫힘
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* 중분류가 있는 경우 */}
                 {hasSubsections ? (
                   <div className="space-y-4">
                     {subsections.map((subsection, subIndex) => {
-                      const subsectionItems = sectionItems.filter(
-                        (item) => item.subsection === subsection
-                      );
+                      const subsectionItems =
+                        subsection === '기타'
+                          ? sectionItems.filter(
+                              (item) => !(item.subsection ?? '').toString().trim()
+                            )
+                          : sectionItems.filter(
+                              (item) => (item.subsection ?? '').toString().trim() === subsection
+                            );
                       const isExpanded = isSubsectionExpanded(sectionIndex, subIndex);
                       const completedCount = subsectionItems.filter(
                         (item) => item.status === 'completed'

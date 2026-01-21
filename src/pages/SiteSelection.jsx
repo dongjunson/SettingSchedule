@@ -1,5 +1,5 @@
-import { ArrowRight, Building2, LogOut } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { ArrowRight, Building2, LogOut, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
@@ -16,11 +16,15 @@ export default function SiteSelection() {
   const loading = useStore((state) => state.loading);
   const loadAllSites = useStore((state) => state.loadAllSites);
   const calculateProgress = useStore((state) => state.calculateProgress);
+  const createSite = useStore((state) => state.createSite);
+  const deleteSite = useStore((state) => state.deleteSite);
 
   // 사용자 스토어
   const logout = useUserStore((state) => state.logout);
-  const getEmail = useUserStore((state) => state.getEmail);
+  const getId = useUserStore((state) => state.getId);
   const getGroup = useUserStore((state) => state.getGroup);
+
+  const isAdmin = getId() === 'admin';
 
   useEffect(() => {
     const loadSitesData = async () => {
@@ -34,6 +38,40 @@ export default function SiteSelection() {
     // 페이지 마운트 시 (새로고침 포함) 항상 API 호출
     loadSitesData();
   }, [loadAllSites]);
+
+  const [newSiteName, setNewSiteName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [deletingSiteId, setDeletingSiteId] = useState(null);
+
+  const handleCreateSite = async () => {
+    setCreateError('');
+    setCreating(true);
+    try {
+      const created = await createSite({ name: newSiteName });
+      setNewSiteName('');
+      navigate(`/site/${created.id}`);
+    } catch (err) {
+      setCreateError(err?.message || '사업소 추가에 실패했습니다.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteSite = async (site) => {
+    if (!site?.id) return;
+    const ok = window.confirm(`'${site.name}' 사업소를 삭제할까요?\\n(타임라인/체크리스트 데이터도 함께 삭제됩니다)`);
+    if (!ok) return;
+
+    setDeletingSiteId(site.id);
+    try {
+      await deleteSite(site.id);
+    } catch (err) {
+      window.alert(err?.message || '사업소 삭제에 실패했습니다.');
+    } finally {
+      setDeletingSiteId(null);
+    }
+  };
 
   // sites와 진행도 계산을 메모이제이션
   const sitesWithProgress = useMemo(() => {
@@ -96,7 +134,7 @@ export default function SiteSelection() {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" align="end">
                     <div className="space-y-1">
-                      <div className="font-semibold">{getEmail()}</div>
+                      <div className="font-semibold">{getId()}</div>
                       <div className="text-xs text-muted-foreground">그룹: {getGroup()}</div>
                       <div className="text-xs text-muted-foreground">클릭하여 로그아웃</div>
                     </div>
@@ -105,6 +143,33 @@ export default function SiteSelection() {
               </div>
             </div>
           </div>
+
+          {/* Admin Only: 신규 사업소 추가 */}
+          {isAdmin && (
+            <div className="mb-6 p-4 rounded-xl border border-border/60 bg-card shadow-sm">
+              <div className="text-sm font-semibold text-foreground mb-2">신규 사업소 추가</div>
+
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-stretch">
+                <input
+                  value={newSiteName}
+                  onChange={(e) => setNewSiteName(e.target.value)}
+                  placeholder="사업소 이름 입력"
+                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground"
+                  disabled={creating}
+                />
+                <Button
+                  onClick={handleCreateSite}
+                  disabled={creating || !newSiteName.trim()}
+                  className="w-full md:w-auto h-10"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {creating ? '추가 중...' : '사업소 추가'}
+                </Button>
+              </div>
+
+              {createError && <div className="mt-2 text-sm text-destructive">{createError}</div>}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -123,7 +188,26 @@ export default function SiteSelection() {
                     <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl shadow-md shadow-primary/20 border border-primary/25">
                       <Building2 className="h-6 w-6 text-primary" />
                     </div>
-                    <CardTitle className="text-xl text-foreground">{site.name}</CardTitle>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-xl text-foreground truncate">{site.name}</CardTitle>
+                    </div>
+
+                    {isAdmin && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="shrink-0"
+                        title="사업소 삭제"
+                        disabled={deletingSiteId === site.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteSite(site);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                   <CardDescription className="text-muted-foreground">
                     타임라인 및 체크리스트 관리
