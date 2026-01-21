@@ -59,7 +59,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* 로고 - 카드 바깥 상단 */}
         <div className="flex justify-center">
-          <img src={loginLogo} alt="PMS Logo" className="h-24" />
+          <img src={loginLogo} alt="PMS Logo" className="h-16" />
         </div>
 
         <Card className="w-full">
