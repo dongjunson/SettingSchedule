@@ -9,6 +9,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import loginLogo from '../assets/images/login-logo.png';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProgressPieChart } from '../components/ProgressChart';
@@ -140,15 +141,7 @@ export default function SiteSelection() {
         <div className="mb-8">
           {/* 헤더 영역 */}
           <div className="mb-6 pb-6 border-b border-border/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 flex items-center gap-3">
-                <span className="w-1 h-8 bg-primary rounded-full" />
-                SAFEROBO PMS
-              </h1>
-              <p className="text-muted-foreground ml-4 text-sm sm:text-base">
-                Project Management System
-              </p>
-            </div>
+            <img src={loginLogo} alt="SAFEROBO PMS" className="h-12" />
 
             {/* User Controls */}
             <div className="flex items-center gap-4 w-full md:w-auto justify-end">
