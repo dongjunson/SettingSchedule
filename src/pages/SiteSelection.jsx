@@ -268,11 +268,11 @@ export default function SiteSelection() {
                           {isEditing ? (
                             <div className="flex items-center gap-2">
                               <input
+                                ref={(el) => el?.focus()}
                                 value={editingName}
                                 onChange={(e) => setEditingName(e.target.value)}
                                 className="flex-1 min-w-0 h-8 px-2 text-base font-bold rounded border border-primary bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                                 disabled={updating}
-                                autoFocus
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') handleSaveEdit(site.id);
                                   if (e.key === 'Escape') handleCancelEdit();
@@ -327,7 +327,9 @@ export default function SiteSelection() {
                                   </Button>
                                 )}
                               </div>
-                              <CardDescription className={`text-xs truncate mt-1 ${isCompleted ? 'text-slate-500' : ''}`}>
+                              <CardDescription
+                                className={`text-xs truncate mt-1 ${isCompleted ? 'text-slate-500' : ''}`}
+                              >
                                 {isCompleted
                                   ? '모든 작업이 완료되었습니다'
                                   : '타임라인 및 체크리스트 관리'}
@@ -382,27 +384,45 @@ export default function SiteSelection() {
                       </div>
 
                       {/* Detailed Stats - 구분선으로 분리 */}
-                      <div className={`flex items-center justify-between pt-3 border-t ${isCompleted ? 'border-slate-200' : 'border-border/40'}`}>
+                      <div
+                        className={`flex items-center justify-between pt-3 border-t ${isCompleted ? 'border-slate-200' : 'border-border/40'}`}
+                      >
                         <div className="text-center flex-1">
-                          <div className={`text-[11px] ${isCompleted ? 'text-slate-400' : 'text-muted-foreground'}`}>타임라인</div>
+                          <div
+                            className={`text-[11px] ${isCompleted ? 'text-slate-400' : 'text-muted-foreground'}`}
+                          >
+                            타임라인
+                          </div>
                           <div
                             className={`text-sm font-semibold ${isCompleted ? 'text-slate-500' : 'text-foreground'}`}
                           >
                             {site.progress.timeline}%
                           </div>
                         </div>
-                        <div className={`w-px h-8 ${isCompleted ? 'bg-slate-200' : 'bg-border/40'}`} />
+                        <div
+                          className={`w-px h-8 ${isCompleted ? 'bg-slate-200' : 'bg-border/40'}`}
+                        />
                         <div className="text-center flex-1">
-                          <div className={`text-[11px] ${isCompleted ? 'text-slate-400' : 'text-muted-foreground'}`}>체크리스트</div>
+                          <div
+                            className={`text-[11px] ${isCompleted ? 'text-slate-400' : 'text-muted-foreground'}`}
+                          >
+                            체크리스트
+                          </div>
                           <div
                             className={`text-sm font-semibold ${isCompleted ? 'text-slate-500' : 'text-foreground'}`}
                           >
                             {site.progress.checklist}%
                           </div>
                         </div>
-                        <div className={`w-px h-8 ${isCompleted ? 'bg-slate-200' : 'bg-border/40'}`} />
+                        <div
+                          className={`w-px h-8 ${isCompleted ? 'bg-slate-200' : 'bg-border/40'}`}
+                        />
                         <div className="text-center flex-1">
-                          <div className={`text-[11px] ${isCompleted ? 'text-slate-400' : 'text-muted-foreground'}`}>작업중</div>
+                          <div
+                            className={`text-[11px] ${isCompleted ? 'text-slate-400' : 'text-muted-foreground'}`}
+                          >
+                            작업중
+                          </div>
                           <div
                             className={`text-sm font-semibold ${isCompleted ? 'text-slate-500' : 'text-foreground'}`}
                           >

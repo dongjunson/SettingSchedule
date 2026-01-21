@@ -62,7 +62,7 @@ export default function TimelinePage() {
     setExpandedSubsections((prev) => {
       const next = { ...prev };
       for (let i = 0; i < subsectionCount; i += 1) {
-        next[`${sectionIndex}-${i}`] = expanded ? true : false;
+        next[`${sectionIndex}-${i}`] = Boolean(expanded);
       }
       return next;
     });
