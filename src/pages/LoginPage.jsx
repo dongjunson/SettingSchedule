@@ -1,6 +1,7 @@
 import { AlertCircle, Info, Lock, User } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import loginLogo from '../assets/images/login-logo.png';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { useUserStore } from '../lib/userStore';
@@ -55,12 +56,17 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* 로고 - 카드 바깥 상단 */}
+        <div className="flex justify-center">
+          <img src={loginLogo} alt="PMS Logo" className="h-24" />
+        </div>
+
         <Card className="w-full">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">로그인</CardTitle>
             <CardDescription className="text-center">
-              이메일과 비밀번호를 입력하여 로그인하세요
+              아이디와 비밀번호를 입력하여 로그인하세요
             </CardDescription>
           </CardHeader>
           <CardContent>

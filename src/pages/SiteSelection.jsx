@@ -143,7 +143,7 @@ export default function SiteSelection() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 flex items-center gap-3">
                 <span className="w-1 h-8 bg-primary rounded-full" />
-                JRI PMS
+                SAFEROBO PMS
               </h1>
               <p className="text-muted-foreground ml-4 text-sm sm:text-base">
                 Project Management System
