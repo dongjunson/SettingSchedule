@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { STORAGE_KEYS } from './constants';
 import { supabase } from './supabase';
-
-const USER_STORAGE_KEY = 'current_user';
 
 const hasSupabaseEnv = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -92,7 +91,7 @@ export const useUserStore = create(
       },
     }),
     {
-      name: USER_STORAGE_KEY,
+      name: STORAGE_KEYS.CURRENT_USER,
       partialize: (state) => ({ currentUser: state.currentUser }),
     }
   )

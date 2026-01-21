@@ -44,15 +44,26 @@ export default function ChecklistPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">데이터를 불러오는 중...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground animate-pulse">데이터를 불러오는 중입니다...</p>
         </div>
       </div>
     );
   }
 
   if (!site) {
-    return <div className="p-8">프로젝트를 찾을 수 없습니다.</div>;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-lg text-muted-foreground">프로젝트를 찾을 수 없습니다.</p>
+          <Button variant="outline" onClick={() => navigate('/')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            프로젝트 목록으로
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const completedCount = site.checklist.filter((item) => item.checked).length;

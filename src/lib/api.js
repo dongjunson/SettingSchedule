@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { STATUS } from './constants';
 import { supabase } from './supabase';
 
 // API 기본 URL 설정 (환경변수 또는 기본값)
@@ -26,7 +27,7 @@ const mapTimelineRowToItem = (row) => ({
   task: row.task ?? '',
   section: row.section ?? '',
   subsection: row.subsection ?? null,
-  status: row.status ?? 'pending',
+  status: row.status ?? STATUS.PENDING,
   role: row.role ?? 'both',
   // Supabase schema uses snake_case; UI uses camelCase
   startDate: row.start_date ?? null,
@@ -202,7 +203,7 @@ export const createSiteOnServer = async ({ id, name, timelineItems = [], checkli
       task: item.task ?? '',
       section: item.section ?? '',
       subsection: item.subsection ?? null,
-      status: item.status ?? 'pending',
+      status: item.status ?? STATUS.PENDING,
       role: item.role ?? 'both',
       start_date: item.startDate ?? null,
       completion_date: item.completionDate ?? null,
@@ -250,6 +251,38 @@ export const deleteSiteOnServer = async (siteId) => {
   return { ok: true };
 };
 
+export const updateSiteOnServer = async (siteId, updates) => {
+  if (!hasSupabaseEnv) {
+    throw new Error('Supabase environment variables are missing.');
+  }
+
+  const id = (siteId || '').toString().trim();
+  if (!id) throw new Error('Site id is required.');
+
+  const payload = {};
+  if ('name' in updates && updates.name) {
+    payload.name = updates.name.toString().trim();
+  }
+
+  if (Object.keys(payload).length === 0) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('sites')
+    .update(payload)
+    .eq('id', id)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Supabase updateSiteOnServer error:', error);
+    throw error;
+  }
+
+  return { id: data.id, name: data.name };
+};
+
 export const repairSiteTimelineOnServer = async (siteId, timelineTemplateItems) => {
   if (!hasSupabaseEnv) {
     throw new Error('Supabase environment variables are missing.');
@@ -281,7 +314,7 @@ export const repairSiteTimelineOnServer = async (siteId, timelineTemplateItems) 
     task: item.task ?? '',
     section: item.section ?? '',
     subsection: item.subsection ?? null,
-    status: item.status ?? 'pending',
+    status: item.status ?? STATUS.PENDING,
     role: item.role ?? 'both',
     start_date: item.startDate ?? null,
     completion_date: item.completionDate ?? null,

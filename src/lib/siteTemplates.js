@@ -1,6 +1,8 @@
 // 신규 사업소 생성 시 사용할 초기 데이터 템플릿을 한 곳에서 관리합니다.
 // - store.js의 하드코딩을 줄이고, 향후 템플릿 변경을 이 파일에서만 하도록 분리
 
+import { ROLE, STATUS } from './constants';
+
 // 타임라인 기본 템플릿 (초기화 상태)
 // - status: pending
 // - start/completion/completed* 값은 null
@@ -643,5 +645,5 @@ export const normalizeNewSiteTimelineForDb = (timeline) =>
     completionDate: null,
     completedAt: null,
     completedBy: null,
-    status: item.status ?? 'pending',
+    status: item.status ?? STATUS.PENDING,
   }));
