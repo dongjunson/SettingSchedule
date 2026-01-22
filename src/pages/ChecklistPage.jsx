@@ -1,45 +1,32 @@
 import { ArrowLeft, Check, FileSpreadsheet } from 'lucide-react';
-import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Checkbox } from '../components/ui/checkbox';
 import { exportChecklistToExcel } from '../lib/exportExcel';
-import { useStore } from '../lib/store';
+import { calculateSiteProgress, useSite, useUpdateChecklistItem } from '../hooks/useQueries';
 import { cn } from '../lib/utils';
 
 export default function ChecklistPage() {
   const { siteId } = useParams();
   const navigate = useNavigate();
 
-  // zustand 스토어에서 상태와 함수 가져오기
-  const site = useStore((state) => state.sites.find((s) => s.id === siteId));
-  const loading = useStore((state) => state.loading);
-  const loadSite = useStore((state) => state.loadSite);
-  const updateChecklistItem = useStore((state) => state.updateChecklistItem);
-  const calculateProgress = useStore((state) => state.calculateProgress);
-
-  useEffect(() => {
-    const loadSiteData = async () => {
-      try {
-        // 새로고침 시마다 항상 API에서 최신 데이터 가져오기
-        await loadSite(siteId, true);
-      } catch (error) {
-        console.error('Failed to load site data:', error);
-      }
-    };
-    // 페이지 마운트 시 (새로고침 포함) 항상 API 호출
-    loadSiteData();
-  }, [siteId, loadSite]);
+  // React Query Hooks
+  const { data: site, isLoading: loading } = useSite(siteId);
+  const { mutateAsync: updateChecklistItem } = useUpdateChecklistItem();
 
   const handleCheckboxChange = async (itemId, checked) => {
-    // zustand 스토어를 통해 업데이트 (자동으로 리렌더링됨)
-    await updateChecklistItem(siteId, itemId, checked);
+    try {
+      await updateChecklistItem({ siteId, itemId, checked });
+    } catch (err) {
+      console.error('Failed to update checklist item:', err);
+      window.alert('체크리스트 업데이트에 실패했습니다.');
+    }
   };
 
   // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
-  const progress = site ? calculateProgress(siteId) : { timeline: 0, checklist: 0, overall: 0 };
+  const progress = site ? calculateSiteProgress(site) : { timeline: 0, checklist: 0, overall: 0, working: 0, completed: 0, total: 0 };
 
   if (loading) {
     return (

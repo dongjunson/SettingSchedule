@@ -9,27 +9,35 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import loginLogo from '../assets/images/login-logo.png';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import loginLogo from '../assets/images/login-logo.png';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
-import { useStore } from '../lib/store';
+import {
+  calculateSiteProgress,
+  useCreateSite,
+  useDeleteSite,
+  useSites,
+  useUpdateSite,
+} from '../hooks/useQueries';
 import { useUserStore } from '../lib/userStore';
 
 export default function SiteSelection() {
   const navigate = useNavigate();
 
-  // zustand 스토어에서 상태와 함수 가져오기
-  const sites = useStore((state) => state.sites);
-  const loading = useStore((state) => state.loading);
-  const loadAllSites = useStore((state) => state.loadAllSites);
-  const calculateProgress = useStore((state) => state.calculateProgress);
-  const createSite = useStore((state) => state.createSite);
-  const deleteSite = useStore((state) => state.deleteSite);
-  const updateSite = useStore((state) => state.updateSite);
+  // React Query Hooks
+  const { data: sites = [], isLoading, isFetching } = useSites();
+  // 초기 로딩(isLoading)이고 데이터가 없을 때만 스피너 표시
+  // isFetching은 백그라운드 refetch이므로 스피너를 표시하지 않음
+  // 새로고침 시에도 캐시가 없으면 isLoading이 true가 되지만,
+  // refetchOnMount: false 설정으로 staleTime 내에서는 불필요한 refetch 방지
+  const loading = isLoading && !sites.length;
+  const { mutateAsync: createSite, isPending: creating } = useCreateSite();
+  const { mutateAsync: deleteSite } = useDeleteSite();
+  const { mutateAsync: updateSite, isPending: updating } = useUpdateSite();
 
   // 사용자 스토어
   const logout = useUserStore((state) => state.logout);
@@ -38,40 +46,22 @@ export default function SiteSelection() {
 
   const isAdmin = getId() === 'admin';
 
-  useEffect(() => {
-    const loadSitesData = async () => {
-      try {
-        // 새로고침 시마다 항상 API에서 최신 데이터 가져오기
-        await loadAllSites(true);
-      } catch (error) {
-        console.error('Failed to load sites data:', error);
-      }
-    };
-    // 페이지 마운트 시 (새로고침 포함) 항상 API 호출
-    loadSitesData();
-  }, [loadAllSites]);
-
   const [newSiteName, setNewSiteName] = useState('');
-  const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   const [deletingSiteId, setDeletingSiteId] = useState(null);
 
   // 수정 모드 상태
   const [editingSiteId, setEditingSiteId] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [updating, setUpdating] = useState(false);
 
   const handleCreateSite = async () => {
     setCreateError('');
-    setCreating(true);
     try {
       const created = await createSite({ name: newSiteName });
       setNewSiteName('');
       navigate(`/site/${created.id}`);
     } catch (err) {
       setCreateError(err?.message || '사업소 추가에 실패했습니다.');
-    } finally {
-      setCreating(false);
     }
   };
 
@@ -104,15 +94,12 @@ export default function SiteSelection() {
 
   const handleSaveEdit = async (siteId) => {
     if (!editingName.trim()) return;
-    setUpdating(true);
     try {
-      await updateSite(siteId, { name: editingName.trim() });
+      await updateSite({ siteId, updates: { name: editingName.trim() } });
       setEditingSiteId(null);
       setEditingName('');
     } catch (err) {
       window.alert(err?.message || '사업소명 수정에 실패했습니다.');
-    } finally {
-      setUpdating(false);
     }
   };
 
@@ -120,7 +107,7 @@ export default function SiteSelection() {
   const sitesWithProgress = useMemo(() => {
     const mapped = sites.map((site) => ({
       ...site,
-      progress: calculateProgress(site.id),
+      progress: calculateSiteProgress(site),
     }));
 
     return mapped.sort((a, b) => {
@@ -133,7 +120,7 @@ export default function SiteSelection() {
 
       return 0;
     });
-  }, [sites, calculateProgress]);
+  }, [sites]);
 
   return (
     <div className="min-h-screen bg-background">

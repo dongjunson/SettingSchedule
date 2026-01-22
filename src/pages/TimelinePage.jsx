@@ -13,7 +13,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { ProgressPieChart } from '../components/ProgressChart';
@@ -21,7 +21,12 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
 import { exportTimelineToExcel } from '../lib/exportExcel';
-import { useStore } from '../lib/store';
+import {
+  calculateSiteProgress,
+  useRepairSiteTimeline,
+  useSite,
+  useUpdateTimelineItem,
+} from '../hooks/useQueries';
 import { useUserStore } from '../lib/userStore';
 import { cn } from '../lib/utils';
 
@@ -29,12 +34,10 @@ export default function TimelinePage() {
   const { siteId } = useParams();
   const navigate = useNavigate();
 
-  // zustand 스토어에서 상태와 함수 가져오기
-  const site = useStore((state) => state.sites.find((s) => s.id === siteId));
-  const loading = useStore((state) => state.loading);
-  const loadSite = useStore((state) => state.loadSite);
-  const updateTimelineItem = useStore((state) => state.updateTimelineItem);
-  const calculateProgress = useStore((state) => state.calculateProgress);
+  // React Query Hooks
+  const { data: site, isLoading: loading } = useSite(siteId);
+  const { mutateAsync: updateTimelineItem } = useUpdateTimelineItem();
+  const { mutateAsync: repairSiteTimeline, isPending: repairing } = useRepairSiteTimeline();
 
   // 사용자 스토어
   const currentUser = useUserStore((state) => state.currentUser);
@@ -42,8 +45,6 @@ export default function TimelinePage() {
   const getId = useUserStore((state) => state.getId);
   const getGroup = useUserStore((state) => state.getGroup);
   const isAdmin = getId() === 'admin';
-
-  const repairSiteTimeline = useStore((state) => state.repairSiteTimeline);
 
   // 아코디언 상태 관리 (섹션-서브섹션 조합을 키로 사용)
   const [expandedSubsections, setExpandedSubsections] = useState({});
@@ -74,19 +75,6 @@ export default function TimelinePage() {
     return expandedSubsections[key] !== false; // 기본값 true
   };
 
-  useEffect(() => {
-    const loadSiteData = async () => {
-      try {
-        // 새로고침 시마다 항상 API에서 최신 데이터 가져오기
-        await loadSite(siteId, true);
-      } catch (error) {
-        console.error('Failed to load site data:', error);
-      }
-    };
-    // 페이지 마운트 시 (새로고침 포함) 항상 API 호출
-    loadSiteData();
-  }, [siteId, loadSite]);
-
   const getNextStatus = (currentStatus) => {
     // pending -> working -> completed -> pending 순환
     const statusOrder = ['pending', 'working', 'completed'];
@@ -102,8 +90,12 @@ export default function TimelinePage() {
       completedAt: nextStatus === 'completed' ? new Date().toISOString() : null,
       completedBy: nextStatus === 'completed' ? getGroup() || null : null,
     };
-    // zustand 스토어를 통해 업데이트 (자동으로 리렌더링됨)
-    await updateTimelineItem(siteId, itemId, updates);
+    try {
+      await updateTimelineItem({ siteId, itemId, updates });
+    } catch (err) {
+      console.error('Failed to update timeline item:', err);
+      window.alert('상태 변경에 실패했습니다.');
+    }
   };
 
   const handleDateChange = async (itemId, dates) => {
@@ -111,14 +103,16 @@ export default function TimelinePage() {
       startDate: dates.startDate || null,
       completionDate: dates.completionDate || null,
     };
-    await updateTimelineItem(siteId, itemId, updates);
+    try {
+      await updateTimelineItem({ siteId, itemId, updates });
+    } catch (err) {
+      console.error('Failed to update timeline item dates:', err);
+      window.alert('날짜 변경에 실패했습니다.');
+    }
   };
-
-  const [repairing, setRepairing] = useState(false);
 
   const handleRepairTimeline = async () => {
     if (!siteId) return;
-    setRepairing(true);
     try {
       const res = await repairSiteTimeline(siteId);
       if (res?.inserted > 0) {
@@ -127,14 +121,13 @@ export default function TimelinePage() {
         window.alert('누락된 타임라인 항목이 없습니다.');
       }
     } catch (err) {
+      console.error('Failed to repair timeline:', err);
       window.alert(err?.message || '타임라인 복구에 실패했습니다.');
-    } finally {
-      setRepairing(false);
     }
   };
 
   // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
-  const progress = site ? calculateProgress(siteId) : { timeline: 0, checklist: 0, overall: 0 };
+  const progress = site ? calculateSiteProgress(site) : { timeline: 0, checklist: 0, overall: 0, working: 0, completed: 0, total: 0 };
 
   const formatCompletedTime = (completedAt) => {
     if (!completedAt) return null;
