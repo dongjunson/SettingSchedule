@@ -80,16 +80,13 @@ export function ProgressPieChart({ value, name, color, workingValue = 0 }) {
 
   useEffect(() => {
     // 차트 애니메이션이 끝난 후 스켈레톤 숨기기
-    // 애니메이션 duration(300ms) + 약간의 여유 시간
+    // 애니메이션 duration(600ms) + 약간의 여유 시간
     const timer = setTimeout(() => {
       setHideSkeleton(true);
-    }, 300 + 50); // 350ms 후 스켈레톤 숨김
+    }, 600 + 50); // 650ms 후 스켈레톤 숨김
 
     return () => clearTimeout(timer);
   }, []); // 마운트 시 한 번만 실행
-
-  // 차트는 항상 표시 (빈 데이터로라도)
-  const showChart = true;
 
   return (
     <div
@@ -105,40 +102,35 @@ export function ProgressPieChart({ value, name, color, workingValue = 0 }) {
         <Skeleton className="w-20 h-20 rounded-full" />
       </div>
 
-      {/* Chart - 준비되면 스켈레톤 위에 그려짐 */}
-      {showChart && (
-        <div
-          className="relative z-10 pointer-events-none"
-          style={{ width: '80px', height: '80px' }}
-        >
-          <ResponsiveContainer width={80} height={80}>
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={22}
-                outerRadius={36}
-                paddingAngle={2}
-                dataKey="value"
-                startAngle={90}
-                endAngle={-270}
-                isAnimationActive={true}
-                animationDuration={300}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${entry.name}-${index}`}
-                    fill={entry.color}
-                    stroke={entry.color}
-                    strokeWidth={0}
-                  />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* Chart - 항상 표시 (빈 데이터로라도) */}
+      <div className="relative z-10 pointer-events-none" style={{ width: '80px', height: '80px' }}>
+        <ResponsiveContainer width={80} height={80}>
+          <PieChart>
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="50%"
+              innerRadius={22}
+              outerRadius={36}
+              paddingAngle={2}
+              dataKey="value"
+              startAngle={90}
+              endAngle={-270}
+              isAnimationActive={true}
+              animationDuration={600}
+            >
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={`cell-${entry.name}-${index}`}
+                  fill={entry.color}
+                  stroke={entry.color}
+                  strokeWidth={0}
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
