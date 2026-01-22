@@ -212,7 +212,9 @@ export const useUpdateTimelineItem = () => {
     },
     onSettled: (data, error, { siteId }) => {
       queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+      // 사업소 목록도 즉시 refetch하여 진행도 업데이트
       queryClient.invalidateQueries({ queryKey: ['sites'] });
+      queryClient.refetchQueries({ queryKey: ['sites'] });
     },
   });
 };
@@ -247,7 +249,9 @@ export const useUpdateChecklistItem = () => {
     },
     onSettled: (data, error, { siteId }) => {
       queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+      // 사업소 목록도 즉시 refetch하여 진행도 업데이트
       queryClient.invalidateQueries({ queryKey: ['sites'] });
+      queryClient.refetchQueries({ queryKey: ['sites'] });
     },
   });
 };
