@@ -141,7 +141,31 @@ export const useCreateSite = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createSiteOnServer,
+    mutationFn: async ({ name }) => {
+      // 사업소 이름에서 id 자동 생성
+      const siteName = (name || '').toString().trim();
+      if (!siteName) {
+        throw new Error('사업소 이름을 입력해주세요.');
+      }
+
+      // 한글/공백 등에서도 안전한 id 생성 (중복 방지)
+      const slug = siteName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      const siteId = slug && slug !== '-' ? slug : `site-${Date.now()}`;
+
+      // 타임라인과 체크리스트 템플릿 준비
+      const timelineItems = normalizeNewSiteTimelineForDb(getNewSiteTimelineTemplate());
+      const checklistItems = getNewSiteChecklistTemplate();
+
+      return createSiteOnServer({
+        id: siteId,
+        name: siteName,
+        timelineItems,
+        checklistItems,
+      });
+    },
     onSuccess: (newSite) => {
       queryClient.invalidateQueries({ queryKey: ['sites'] });
       if (newSite) {
