@@ -36,9 +36,9 @@ export default function SiteSelection() {
   const { mutateAsync: updateSite, isPending: updating } = useUpdateSite();
 
   // 사용자 스토어
-  const getId = useUserStore((state) => state.getId);
+  const getGroup = useUserStore((state) => state.getGroup);
 
-  const isAdmin = getId() === 'admin';
+  const isAdmin = getGroup() === '관리자';
 
   const [deletingSiteId, setDeletingSiteId] = useState(null);
 

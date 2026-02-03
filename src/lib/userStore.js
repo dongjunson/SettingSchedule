@@ -7,11 +7,11 @@ const hasSupabaseEnv = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-// Supabase 미설정(로컬/데모)일 때만 사용하는 fallback 계정
+// Supabase 미설정(로컬/데모)일 때만 사용하는 fallback 계정 (이메일로 매칭)
 const FALLBACK_USERS = [
-  { id: 'admin', password: 'joy&rising', group: '관리자' },
-  { id: 'rnd', password: 'joy&rising', group: 'R&D' },
-  { id: 'system', password: 'joy&rising', group: '사업지원팀' },
+  { id: 'admin', email: 'admin@saferobo.co.kr', password: 'joy&rising', group: '관리자' },
+  { id: 'rnd', email: 'rnd@saferobo.co.kr', password: 'joy&rising', group: 'R&D' },
+  { id: 'system', email: 'system@saferobo.co.kr', password: 'joy&rising', group: '사업지원팀' },
 ];
 
 export const useUserStore = create(
@@ -20,56 +20,97 @@ export const useUserStore = create(
       // 현재 사용자 정보
       currentUser: null,
 
-      // 로그인 (아이디/비밀번호 기반, Supabase RPC로 검증)
-      login: async (id, password) => {
-        const userId = (id || '').toString().trim();
-        if (!userId || !password) {
-          return { success: false, error: '아이디와 비밀번호를 입력해주세요.' };
+      // 로그인 (이메일/비밀번호 기반, app_users.email + RPC pms_login_by_email로 검증)
+      login: async (email, password) => {
+        const emailTrim = (email || '').toString().trim().toLowerCase();
+        if (!emailTrim || !password) {
+          return { success: false, error: '이메일과 비밀번호를 입력해주세요.' };
         }
 
-        // 1) Supabase 환경이면 DB의 사전 발급 계정(app_users) + RPC로 검증
+        // 1) Supabase 환경이면 DB(app_users.email) + RPC로 검증 후 Auth 세션 부여
         if (hasSupabaseEnv) {
           try {
-            const { data, error } = await supabase.rpc('pms_login', {
-              p_user_id: userId,
+            const { data, error } = await supabase.rpc('pms_login_by_email', {
+              p_email: emailTrim,
               p_password: password,
             });
 
             if (error) {
-              console.error('Supabase pms_login error:', error);
+              console.error('Supabase pms_login_by_email error:', error);
               return { success: false, error: '로그인에 실패했습니다. 관리자에게 문의하세요.' };
             }
 
-            // Supabase RPC returns array by default for set-returning functions
             const row = Array.isArray(data) ? data[0] : data;
-            if (!row?.user_id) {
-              return { success: false, error: '아이디 또는 비밀번호가 올바르지 않습니다.' };
+
+            if (row?.user_id) {
+              // app_users에 있는 사용자: Auth 로그인 후 user_id/group 사용
+              const { error: authError } = await supabase.auth.signInWithPassword({
+                email: emailTrim,
+                password,
+              });
+              if (authError) {
+                console.error('Supabase Auth signIn error:', authError);
+                const hint =
+                  ' Supabase 대시보드 → Authentication → Users에서 해당 이메일 사용자를 추가하고, app_users와 동일한 비밀번호를 설정하세요.';
+                const msg = authError.message || authError.code || 'Unknown';
+                return {
+                  success: false,
+                  error: `세션 설정 실패: ${msg}.${hint}`,
+                };
+              }
+              await supabase.auth.updateUser({
+                data: { group: row.user_group || null },
+              });
+              set({
+                currentUser: {
+                  id: row.user_id,
+                  group: row.user_group || null,
+                },
+              });
+              return { success: true };
             }
 
-            set({
-              currentUser: {
-                id: row.user_id,
-                group: row.user_group || null,
-              },
+            // app_users에 없음: 초대 사용자(Auth만 있음)일 수 있음 → Auth 로그인 시도
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+              email: emailTrim,
+              password,
             });
-            return { success: true };
+            if (!authError && authData?.user) {
+              const id = authData.user.email?.replace(/@.+$/, '') || emailTrim;
+              const group = authData.user.user_metadata?.group ?? null;
+              set({
+                currentUser: { id, group },
+              });
+              return { success: true };
+            }
+
+            return { success: false, error: '이메일 또는 비밀번호가 올바르지 않습니다.' };
           } catch (err) {
             console.error('Login failed:', err);
             return { success: false, error: '로그인 중 오류가 발생했습니다.' };
           }
         }
 
-        // 2) Supabase 미설정 환경에서는 fallback 계정으로 동작 (개발/데모)
-        const user = FALLBACK_USERS.find((u) => u.id === userId && u.password === password);
+        // 2) Supabase 미설정 환경에서는 fallback 계정 (이메일로 매칭)
+        const user = FALLBACK_USERS.find(
+          (u) => u.email.toLowerCase() === emailTrim && u.password === password
+        );
         if (user) {
           set({ currentUser: { id: user.id, group: user.group } });
           return { success: true };
         }
-        return { success: false, error: '아이디 또는 비밀번호가 올바르지 않습니다.' };
+        return { success: false, error: '이메일 또는 비밀번호가 올바르지 않습니다.' };
       },
 
-      // 로그아웃
-      logout: () => {
+      // 로그아웃 (Auth 세션 제거 → anon으로 돌아가 RLS로 테이블 접근 차단)
+      logout: async () => {
+        if (hasSupabaseEnv) {
+          try {
+            await supabase.auth.signOut();
+          } catch (err) {
+            console.warn('Auth signOut error:', err);
+          }
+        }
         set({ currentUser: null });
       },
 
@@ -88,6 +129,25 @@ export const useUserStore = create(
       // 로그인 여부 확인
       isLoggedIn: () => {
         return get().currentUser !== null;
+      },
+
+      // 앱 초기 로드 시 Auth 세션 복원 (새로고침 후 로그인 유지)
+      restoreSession: async () => {
+        if (!hasSupabaseEnv) return;
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.user?.email) {
+          set({ currentUser: null });
+          return;
+        }
+        const id = session.user.email.replace(/@.+$/, '');
+        if (!id) {
+          set({ currentUser: null });
+          return;
+        }
+        const group = session.user.user_metadata?.group ?? null;
+        set({ currentUser: { id, group } });
       },
     }),
     {

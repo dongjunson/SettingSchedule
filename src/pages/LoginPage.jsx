@@ -1,4 +1,4 @@
-import { AlertCircle, Info, Lock, User } from 'lucide-react';
+import { AlertCircle, Info, Lock, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import loginLogo from '../assets/images/login-logo.png';
@@ -6,23 +6,22 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { useUserStore } from '../lib/userStore';
 
-const REMEMBER_ID_KEY = 'remembered_user_id';
+const REMEMBER_EMAIL_KEY = 'remembered_user_email';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const login = useUserStore((state) => state.login);
 
-  const rememberedId = (() => {
+  const rememberedEmail = (() => {
     try {
-      return localStorage.getItem(REMEMBER_ID_KEY) || '';
+      return localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
     } catch {
       return '';
     }
   })();
 
-  // 기본값: 저장된 아이디가 있으면 사용, 없으면 rnd
-  const [userId, setUserId] = useState(rememberedId || 'rnd');
-  const [rememberId, setRememberId] = useState(Boolean(rememberedId));
+  const [email, setEmail] = useState(rememberedEmail || 'admin@saferobo.co.kr');
+  const [rememberEmail, setRememberEmail] = useState(Boolean(rememberedEmail));
   const [password, setPassword] = useState('joy&rising');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,16 +32,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await login(userId, password);
+      const result = await login(email, password);
 
       if (result.success) {
         try {
-          if (rememberId) localStorage.setItem(REMEMBER_ID_KEY, userId);
-          else localStorage.removeItem(REMEMBER_ID_KEY);
+          if (rememberEmail) localStorage.setItem(REMEMBER_EMAIL_KEY, email);
+          else localStorage.removeItem(REMEMBER_EMAIL_KEY);
         } catch {
           // ignore storage errors
         }
-        // 로그인 성공 시 메인 페이지로 이동
         navigate('/', { replace: true });
       } else {
         setError(result.error || '로그인에 실패했습니다.');
@@ -66,7 +64,7 @@ export default function LoginPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">로그인</CardTitle>
             <CardDescription className="text-center">
-              아이디와 비밀번호를 입력하여 로그인하세요
+              이메일과 비밀번호를 입력하여 로그인하세요
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -79,20 +77,20 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <label htmlFor="userId" className="text-sm font-medium text-foreground">
-                  아이디
+                <label htmlFor="email" className="text-sm font-medium text-foreground">
+                  이메일
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
-                    id="userId"
-                    type="text"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
-                    placeholder="admin | rnd | system"
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@saferobo.co.kr"
                     className="w-full pl-10 pr-4 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     required
-                    autoComplete="username"
+                    autoComplete="email"
                     disabled={loading}
                   />
                 </div>
@@ -121,11 +119,11 @@ export default function LoginPage() {
               <label className="flex items-center gap-2 text-sm text-foreground select-none">
                 <input
                   type="checkbox"
-                  checked={rememberId}
-                  onChange={(e) => setRememberId(e.target.checked)}
+                  checked={rememberEmail}
+                  onChange={(e) => setRememberEmail(e.target.checked)}
                   disabled={loading}
                 />
-                아이디 저장
+                이메일 저장
               </label>
 
               <Button type="submit" className="w-full" size="lg" disabled={loading}>
@@ -141,7 +139,7 @@ export default function LoginPage() {
           <span className="leading-relaxed box-content mt-0 mb-0">
             본 시스템은 허가받은 사용자만 접근 가능합니다.
             <br />
-            아이디 발급 문의 marx@saferobo.co.kr
+            이메일 발급 문의 marx@saferobo.co.kr
           </span>
         </div>
       </div>

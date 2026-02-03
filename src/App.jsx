@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import AdminRoute from './components/AdminRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
+import AdminInviteUserPage from './pages/AdminInviteUserPage';
 import AdminNewProjectPage from './pages/AdminNewProjectPage';
 import AdminProjectManagePage from './pages/AdminProjectManagePage';
 import ChecklistPage from './pages/ChecklistPage';
@@ -11,8 +13,13 @@ import IncomeStatementPage from './pages/IncomeStatementPage';
 import LoginPage from './pages/LoginPage';
 import SiteSelection from './pages/SiteSelection';
 import TimelinePage from './pages/TimelinePage';
+import { useUserStore } from './lib/userStore';
 
 function App() {
+  useEffect(() => {
+    useUserStore.getState().restoreSession();
+  }, []);
+
   return (
     <Router>
       <Routes>
@@ -44,6 +51,7 @@ function App() {
           />
           <Route path="completed-projects" element={<CompletedProjectsPage />} />
           <Route path="admin/new-project" element={<AdminNewProjectPage />} />
+          <Route path="admin/invite-user" element={<AdminInviteUserPage />} />
           <Route path="admin/projects" element={<AdminProjectManagePage />} />
           <Route path="admin/hidden-projects" element={<AdminProjectManagePage />} />
         </Route>

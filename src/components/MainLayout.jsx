@@ -5,6 +5,7 @@ import {
   ChevronRight,
   FileSpreadsheet,
   LogOut,
+  MailPlus,
   PlusCircle,
   Settings,
   SlidersHorizontal,
@@ -23,7 +24,7 @@ export default function MainLayout() {
   const getId = useUserStore((state) => state.getId);
   const getGroup = useUserStore((state) => state.getGroup);
   const userId = useUserStore((state) => state.currentUser?.id);
-  const isAdmin = userId === 'admin';
+  const isAdmin = getGroup() === '관리자';
 
   const handleLogout = () => {
     logout();
@@ -62,6 +63,10 @@ export default function MainLayout() {
                 <NavLink to="/admin/new-project" className={adminNavLinkClass}>
                   <PlusCircle className="h-5 w-5 shrink-0" />
                   <span>신규 프로젝트 등록</span>
+                </NavLink>
+                <NavLink to="/admin/invite-user" className={adminNavLinkClass}>
+                  <MailPlus className="h-5 w-5 shrink-0" />
+                  <span>사용자 초대</span>
                 </NavLink>
                 <NavLink to="/admin/projects" className={adminNavLinkClass}>
                   <SlidersHorizontal className="h-5 w-5 shrink-0" />

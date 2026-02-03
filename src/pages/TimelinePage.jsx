@@ -44,7 +44,7 @@ export default function TimelinePage() {
   const logout = useUserStore((state) => state.logout);
   const getId = useUserStore((state) => state.getId);
   const getGroup = useUserStore((state) => state.getGroup);
-  const isAdmin = getId() === 'admin';
+  const isAdmin = getGroup() === '관리자';
 
   // 아코디언 상태 관리 (섹션-서브섹션 조합을 키로 사용)
   const [expandedSubsections, setExpandedSubsections] = useState({});

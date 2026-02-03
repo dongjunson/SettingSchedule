@@ -61,6 +61,7 @@ CREATE TABLE app_users (
   id TEXT PRIMARY KEY,         -- 로그인 아이디 (예: admin / rnd / system)
   group_name TEXT NOT NULL,    -- 표시용 그룹명 (예: 관리자 / R&D / 사업지원팀)
   password_hash TEXT NOT NULL, -- crypt() 해시
+  email TEXT,                  -- Auth/로그인용 이메일 (예: admin@saferobo.co.kr)
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -88,10 +89,19 @@ ALTER TABLE timeline_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 
--- 7. 정책(Policy) 설정 - 개발용으로 모든 사용자에게 읽기/쓰기 허용 (추후 수정 필요)
-CREATE POLICY "Enable all access for sites" ON sites FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all access for timeline_items" ON timeline_items FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Enable all access for checklist_items" ON checklist_items FOR ALL USING (true) WITH CHECK (true);
+-- 7. 정책(Policy) 설정 - 인증된 사용자(로그인 후 Supabase Auth 세션)만 sites/timeline/checklist 접근
+--    anon 키로는 접근 불가 → 보안 경고 해소
+CREATE POLICY "Authenticated read write sites"
+  ON sites FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated read write timeline_items"
+  ON timeline_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated read write checklist_items"
+  ON checklist_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- (기존 "Enable all access for ..." 정책이 있다면 SQL Editor에서 아래로 제거 후 위 정책 적용)
+-- DROP POLICY IF EXISTS "Enable all access for sites" ON sites;
+-- DROP POLICY IF EXISTS "Enable all access for timeline_items" ON timeline_items;
+-- DROP POLICY IF EXISTS "Enable all access for checklist_items" ON checklist_items;
 
 -- app_users는 직접 조회/수정 금지 (비밀번호 해시 보호)
 -- - RLS 켜진 상태에서 "모든 접근 거부" 정책을 명시적으로 추가
@@ -99,19 +109,38 @@ CREATE POLICY "Enable all access for checklist_items" ON checklist_items FOR ALL
 CREATE POLICY "Deny all access to app_users" ON app_users FOR ALL USING (false) WITH CHECK (false);
 REVOKE ALL ON TABLE app_users FROM anon, authenticated;
 
--- 대신 pms_login 함수 실행 권한만 열어줍니다.
+-- 이메일로 로그인 검증 (app_users.email 컬럼 사용, Auth 이메일과 동일해야 함)
+CREATE OR REPLACE FUNCTION pms_login_by_email(p_email TEXT, p_password TEXT)
+RETURNS TABLE(user_id TEXT, user_group TEXT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT u.id, u.group_name
+  FROM app_users u
+  WHERE u.email = p_email
+    AND u.password_hash = extensions.crypt(p_password, u.password_hash);
+END;
+$$;
+
+-- 대신 pms_login / pms_login_by_email 함수 실행 권한만 열어줍니다.
 GRANT EXECUTE ON FUNCTION pms_login(TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION pms_login_by_email(TEXT, TEXT) TO anon, authenticated;
 
 -- 8. 사전 발급 계정 시딩 (배포용)
--- 공통 비밀번호: joy&rising
-INSERT INTO app_users (id, group_name, password_hash)
+-- 공통 비밀번호: joy&rising, 이메일은 로그인/Auth용 (앱에서 이메일로 로그인)
+INSERT INTO app_users (id, group_name, password_hash, email)
 VALUES
-  ('admin',  '관리자',    extensions.crypt('joy&rising', extensions.gen_salt('bf'))),
-  ('rnd',    'R&D',       extensions.crypt('joy&rising', extensions.gen_salt('bf'))),
-  ('system', '사업지원팀', extensions.crypt('joy&rising', extensions.gen_salt('bf')))
+  ('admin',  '관리자',    extensions.crypt('joy&rising', extensions.gen_salt('bf')), 'admin@saferobo.co.kr'),
+  ('rnd',    'R&D',       extensions.crypt('joy&rising', extensions.gen_salt('bf')), 'rnd@saferobo.co.kr'),
+  ('system', '사업지원팀', extensions.crypt('joy&rising', extensions.gen_salt('bf')), 'system@saferobo.co.kr')
 ON CONFLICT (id) DO UPDATE SET
   group_name = EXCLUDED.group_name,
-  password_hash = EXCLUDED.password_hash;
+  password_hash = EXCLUDED.password_hash,
+  email = EXCLUDED.email;
 ```
 
 ## 3. 환경 변수 설정
@@ -129,11 +158,97 @@ VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY_HERE
 
 왼쪽 사이드바의 **Table Editor**를 클릭하여 `sites`, `timeline_items`, `checklist_items` 테이블이 정상적으로 생성되었는지 확인합니다.
 
+## 5. Auth 사용자 생성 (RLS용)
+
+`sites`, `timeline_items`, `checklist_items`는 **인증된 사용자(authenticated)**만 접근할 수 있도록 RLS가 설정되어 있습니다. 앱 로그인 시 `pms_login` 검증 후 Supabase Auth로도 세션을 부여하므로, 아래 이메일 계정을 Auth에 생성해야 합니다.
+
+1.  대시보드 왼쪽 **Authentication** → **Users** → **Add user** → **Create new user**를 클릭합니다.
+2.  아래 세 계정을 각각 생성합니다. 비밀번호는 `app_users` 시딩과 **동일**하게 설정합니다 (예: joy&rising).
+
+| Email | 비밀번호 (app_users와 동일) |
+|-------|----------------------------|
+| `admin@saferobo.co.kr` | joy&rising |
+| `rnd@saferobo.co.kr` | joy&rising |
+| `system@saferobo.co.kr` | joy&rising |
+
+3.  **Auto Confirm User**를 켜거나, 생성 후 이메일 확인 없이 로그인 가능하도록 설정합니다.
+4.  **비밀번호는 반드시 `app_users`에 저장된 비밀번호와 동일**해야 합니다. (앱은 먼저 `app_users`로 검증한 뒤, 같은 이메일/비밀번호로 Auth 로그인을 시도합니다.)
+
+이후 앱에서 **이메일** `admin@saferobo.co.kr` / 비밀번호 `joy&rising` 등으로 로그인하면, RPC `pms_login_by_email`로 검증 후 동일 이메일/비밀번호로 Supabase Auth 로그인이 이루어져 테이블 접근이 허용됩니다.
+
+**"세션 설정 실패"가 나오는 경우**: Supabase **Authentication → Users**에 해당 이메일 사용자가 없거나, Auth에 설정한 비밀번호가 `app_users`와 다릅니다. 위 표와 동일한 이메일·비밀번호로 Auth 사용자를 추가하거나 수정하세요.
+
+### 기존 프로젝트에서 RLS 정책만 교체하는 경우
+
+이미 "Enable all access for ..." 정책으로 설정한 프로젝트는 Supabase 대시보드 **Table Editor** → 각 테이블 → **Policies**에서 실제 정책 이름을 확인한 뒤, **SQL Editor**에서 아래를 실행합니다. (정책 이름이 다르면 `"실제이름"`으로 바꿉니다.)
+
+```sql
+-- 기존 정책 제거 후 인증 전용 정책 생성
+DROP POLICY IF EXISTS "Enable all access for sites" ON sites;
+DROP POLICY IF EXISTS "Enable all access for timeline_items" ON timeline_items;
+DROP POLICY IF EXISTS "Enable all access for checklist_items" ON checklist_items;
+
+CREATE POLICY "Authenticated read write sites"
+  ON sites FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated read write timeline_items"
+  ON timeline_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated read write checklist_items"
+  ON checklist_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+```
+
+그 다음 **5. Auth 사용자 생성** 절대로 Auth 사용자(admin@saferobo.co.kr 등)를 생성해야 앱 로그인 후 테이블 접근이 가능합니다.
+
+### 기존 DB에 pms_login_by_email 추가 (이메일 로그인 사용 시)
+
+이미 테이블만 만들어진 프로젝트에서 이메일 로그인을 쓰려면, `app_users`에 `email` 컬럼이 있어야 하고, 아래 RPC를 SQL Editor에서 실행합니다.
+
+```sql
+CREATE OR REPLACE FUNCTION pms_login_by_email(p_email TEXT, p_password TEXT)
+RETURNS TABLE(user_id TEXT, user_group TEXT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT u.id, u.group_name
+  FROM app_users u
+  WHERE u.email = p_email
+    AND u.password_hash = extensions.crypt(p_password, u.password_hash);
+END;
+$$;
+GRANT EXECUTE ON FUNCTION pms_login_by_email(TEXT, TEXT) TO anon, authenticated;
+```
+
+### 기존 app_users 기준 이메일 확인 및 업데이트
+
+Auth 사용자 생성 시 어떤 이메일을 쓸지 확인하려면, 기존 `app_users` 목록과 해당 Auth 이메일을 조회합니다.
+
+```sql
+-- 기존 사용자별 Auth 이메일 확인 (Auth 대시보드에서 생성할 이메일 목록)
+SELECT id, group_name, id || '@saferobo.co.kr' AS auth_email
+FROM app_users
+ORDER BY id;
+```
+
+선택 사항: `app_users`에 `email` 컬럼을 두고 id 기준으로 채워 두려면 아래 **전체**를 한 번에 실행합니다. (먼저 `email` 컬럼이 없으면 추가한 뒤 업데이트합니다.)
+
+```sql
+-- 1) email 컬럼이 없으면 추가 (반드시 먼저 실행)
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS email TEXT;
+
+-- 2) 기존 id 기준으로 email 채우기
+UPDATE app_users
+SET email = id || '@saferobo.co.kr'
+WHERE email IS NULL OR email <> id || '@saferobo.co.kr';
+```
+
 이제 Supabase 설정이 완료되었습니다!
 
-## 5. (기존 DB 사용 시) sites에 stage 컬럼 추가
+## 6. (기존 DB 사용 시) sites에 stage 컬럼 추가
 
-이미 `sites` 테이블이 있는 경우, SQL Editor에서 아래를 실행하여 `stage` 컬럼을 추가하고 기존 사업소를 구축중으로 표시합니다.
+이미 `sites` 테이블이 있고 `stage` 컬럼이 없는 경우, SQL Editor에서 아래를 실행하여 `stage` 컬럼을 추가하고 기존 사업소를 구축중으로 표시합니다.
 
 ```sql
 -- stage 컬럼 추가 (nullable)
@@ -142,3 +257,29 @@ ALTER TABLE sites ADD COLUMN IF NOT EXISTS stage TEXT;
 -- 기존 행은 모두 구축중으로 표시
 UPDATE sites SET stage = '구축중' WHERE stage IS NULL;
 ```
+
+## 7. 사용자 초대 Edge Function (선택)
+
+관리자 메뉴에서 **사용자 초대**로 신규 이메일을 입력하고 초대 메일을 보내려면, `invite-user` Edge Function을 **Supabase 쪽에 한 번 배포**해야 합니다.
+
+- **여기서 말하는 "배포"**는 Edge Function을 Supabase 클라우드에 올리는 것이지, 앱(프론트)을 배포하는 게 아닙니다.
+- **한 번 배포해 두면** 로컬에서 `npm run dev`로 앱을 띄운 **개발 환경**에서도, 배포된 앱에서도 동일한 함수 URL을 호출하므로 **둘 다 사용 가능**합니다.
+- 즉, 개발 중에도 초대 기능을 쓰려면 Supabase에 Edge Function만 배포하면 됩니다.
+
+1.  [Supabase CLI](https://supabase.com/docs/guides/cli)를 설치하고 `supabase login` 후 프로젝트에 링크합니다.
+2.  프로젝트 루트에 `supabase/functions/invite-user/index.ts`가 있는지 확인합니다.
+3.  터미널에서 다음을 실행합니다.
+
+```bash
+supabase functions deploy invite-user
+```
+
+4.  Edge Function은 `SUPABASE_SERVICE_ROLE_KEY`를 사용해 Auth Admin API(`inviteUserByEmail`)를 호출합니다. 배포 시 Supabase가 자동으로 주입하므로 별도 설정은 필요 없습니다.
+5.  앱에서 **관리자**로 로그인한 뒤 **관리자 메뉴 → 사용자 초대**에서 이메일과 그룹(관리자 / R&D / 사업지원팀)을 입력하고 **초대 메일 보내기**를 클릭합니다.
+6.  수신자가 메일의 링크를 클릭해 비밀번호를 설정하면, 해당 이메일/비밀번호로 앱에 로그인할 수 있습니다 (초대 사용자는 `app_users`에 없어도 Auth만으로 로그인됩니다).
+
+**"Failed to send a request to the Edge Function" / "Edge Function에 연결할 수 없습니다"가 나오는 경우**
+
+- **Edge Function이 배포되지 않음**: 터미널에서 `supabase functions deploy invite-user`를 실행했는지 확인합니다.
+- **Supabase 프로젝트 링크**: 로컬에서 배포하려면 `supabase link --project-ref <프로젝트ID>`로 프로젝트를 연결한 뒤 배포합니다.
+- **네트워크/방화벽**: 브라우저에서 `https://<프로젝트URL>/functions/v1/invite-user` 로의 POST 요청이 차단되지 않는지 확인합니다.

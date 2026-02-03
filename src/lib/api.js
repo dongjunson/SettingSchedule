@@ -339,4 +339,64 @@ export const repairSiteTimelineOnServer = async (siteId, timelineTemplateItems) 
   return { inserted: payload.length };
 };
 
+/**
+ * 관리자 전용: 이메일로 사용자 초대 (Supabase Auth 초대 메일 발송)
+ * Edge Function invite-user 호출. 관리자(group === '관리자')만 호출 가능.
+ * @param {string} email - 초대할 이메일
+ * @param {string} group - 그룹명 (관리자, R&D, 사업지원팀 등)
+ * @returns {{ ok: boolean, error?: string, message?: string }}
+ */
+export const inviteUserByEmail = async (email, group) => {
+  if (!hasSupabaseEnv) {
+    return { ok: false, error: 'Supabase가 설정되지 않았습니다.' };
+  }
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      return { ok: false, error: '로그인 세션이 없습니다. 다시 로그인해 주세요.' };
+    }
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
+    const url = `${supabaseUrl}/functions/v1/invite-user`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        email: (email || '').toString().trim(),
+        group: (group || '사업지원팀').toString().trim(),
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg =
+        data?.error ??
+        (res.status === 404
+          ? 'Edge Function이 배포되지 않았을 수 있습니다. supabase functions deploy invite-user 를 실행하세요.'
+          : res.status === 401
+            ? '인증이 만료되었습니다. 다시 로그인해 주세요.'
+            : `요청 실패 (${res.status})`);
+      return { ok: false, error: msg };
+    }
+    if (data?.error) {
+      return { ok: false, error: data.error };
+    }
+    return { ok: true, message: data?.message ?? '초대 메일을 발송했습니다.' };
+  } catch (err) {
+    console.error('inviteUserByEmail error:', err);
+    const msg = err?.message ?? '';
+    const hint =
+      msg.includes('Failed to send') || msg.includes('fetch') || err?.name === 'TypeError'
+        ? ' Edge Function이 배포되지 않았거나 네트워크를 확인하세요. supabase functions deploy invite-user'
+        : '';
+    return { ok: false, error: (msg || '초대 요청 중 오류가 발생했습니다.') + hint };
+  }
+};
+
 export default api;

@@ -50,6 +50,7 @@ Pre-issued users for ID/password distribution login.
 | `id` | `text` | **Primary Key**. Login ID (e.g., 'admin', 'rnd', 'system') |
 | `group_name` | `text` | Display group name (e.g., '관리자', 'R&D', '사업지원팀') |
 | `password_hash` | `text` | Password hash (pgcrypto `crypt`) |
+| `email` | `text` | Optional. Auth 이메일 (`id` + '@pms.local'). [supabase-setup-manual.md](supabase-setup-manual.md)의 업데이트 쿼리로 채움. |
 | `created_at` | `timestamptz` | Creation timestamp (default: `now()`) |
 
 ## SQL Initialization
@@ -115,22 +116,40 @@ BEGIN
 END;
 $$;
 
+-- Login by email (uses app_users.email; used by app when user enters email)
+CREATE OR REPLACE FUNCTION pms_login_by_email(p_email TEXT, p_password TEXT)
+RETURNS TABLE(user_id TEXT, user_group TEXT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+SET row_security = off
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT u.id, u.group_name
+  FROM app_users u
+  WHERE u.email = p_email
+    AND u.password_hash = extensions.crypt(p_password, u.password_hash);
+END;
+$$;
+
 -- Enable RLS
 ALTER TABLE sites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE timeline_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies (Public Read/Write for MVP)
-CREATE POLICY "Public read sites" ON sites FOR SELECT USING (true);
-CREATE POLICY "Public update sites" ON sites FOR UPDATE USING (true);
-CREATE POLICY "Public read timeline" ON timeline_items FOR SELECT USING (true);
-CREATE POLICY "Public update timeline" ON timeline_items FOR UPDATE USING (true);
-CREATE POLICY "Public read checklist" ON checklist_items FOR SELECT USING (true);
-CREATE POLICY "Public update checklist" ON checklist_items FOR UPDATE USING (true);
+-- RLS Policies (authenticated only: 로그인 후 Supabase Auth 세션이 있어야 접근 가능)
+CREATE POLICY "Authenticated read write sites"
+  ON sites FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated read write timeline_items"
+  ON timeline_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated read write checklist_items"
+  ON checklist_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- Users table should not be readable from clients; allow only the login RPC.
 CREATE POLICY "Deny all access to app_users" ON app_users FOR ALL USING (false) WITH CHECK (false);
 REVOKE ALL ON TABLE app_users FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION pms_login(TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION pms_login_by_email(TEXT, TEXT) TO anon, authenticated;
 ```
