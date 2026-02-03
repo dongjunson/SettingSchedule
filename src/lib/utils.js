@@ -60,3 +60,75 @@ export const parseStepForSort = (step) => {
   if (!m) return [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
   return [Number(m[1]), Number(m[2])];
 };
+
+// 사이트 진행도 계산
+export const calculateSiteProgress = (site, weights = { timeline: 0.7, checklist: 0.3 }) => {
+  if (!site) return { timeline: 0, checklist: 0, overall: 0, working: 0, completed: 0, total: 0 };
+
+  const timelineTotal = site.timeline?.length || 0;
+  const timelineCompleted =
+    site.timeline?.filter((item) => item.status === STATUS.COMPLETED).length || 0;
+  const timelineWorking =
+    site.timeline?.filter((item) => item.status === STATUS.WORKING).length || 0;
+  const timelineProgress = timelineTotal > 0 ? (timelineCompleted / timelineTotal) * 100 : 0;
+
+  const checklistTotal = site.checklist?.length || 0;
+  const checklistCompleted = site.checklist?.filter((item) => item.checked).length || 0;
+  const checklistProgress = checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
+
+  const overallProgress = timelineProgress * weights.timeline + checklistProgress * weights.checklist;
+
+  return {
+    timeline: Math.round(timelineProgress),
+    checklist: Math.round(checklistProgress),
+    overall: Math.round(overallProgress),
+    working: timelineWorking,
+    completed: timelineCompleted,
+    total: timelineTotal,
+  };
+};
+
+// 체크리스트 검증 및 정규화
+export const validateAndUpdateChecklist = (checklist, getTemplate) => {
+  const initialChecklist = getTemplate().map((item, idx) => ({
+    id: idx + 1,
+    ...item,
+    checked: false,
+  }));
+
+  if (!Array.isArray(checklist) || checklist.length === 0) {
+    return initialChecklist;
+  }
+
+  const normalized = checklist
+    .filter((item) => item && item.id != null && typeof item.text === 'string')
+    .map((item) => ({
+      ...item,
+      checked: Boolean(item.checked),
+    }));
+
+  if (normalized.length === 0) {
+    return initialChecklist;
+  }
+
+  const orderMap = new Map(initialChecklist.map((b, idx) => [b.text, idx]));
+  normalized.sort(
+    (a, b) =>
+      (orderMap.get(a.text) ?? Number.POSITIVE_INFINITY) -
+      (orderMap.get(b.text) ?? Number.POSITIVE_INFINITY)
+  );
+
+  return normalized;
+};
+
+// 상태 아이콘 반환
+export const getStatusIcon = (status) => {
+  switch (status) {
+    case STATUS.COMPLETED:
+      return 'CheckCircle';
+    case STATUS.WORKING:
+      return 'Clock';
+    default:
+      return 'Circle';
+  }
+};

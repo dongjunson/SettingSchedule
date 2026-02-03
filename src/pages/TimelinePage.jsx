@@ -15,11 +15,13 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ErrorPage, LoadingSpinner } from '../components/common';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
+import { USER_GROUPS } from '../lib/constants';
 import { exportTimelineToExcel } from '../lib/exportExcel';
 import {
   calculateSiteProgress,
@@ -28,7 +30,15 @@ import {
   useUpdateTimelineItem,
 } from '../hooks/useQueries';
 import { useUserStore } from '../lib/userStore';
-import { cn } from '../lib/utils';
+import {
+  cn,
+  formatCompletedTime,
+  formatDateShort,
+  getNextStatus,
+  getStatusColor,
+  normalizeRole,
+  parseStepForSort,
+} from '../lib/utils';
 
 export default function TimelinePage() {
   const { siteId } = useParams();
@@ -44,7 +54,7 @@ export default function TimelinePage() {
   const logout = useUserStore((state) => state.logout);
   const getId = useUserStore((state) => state.getId);
   const getGroup = useUserStore((state) => state.getGroup);
-  const isAdmin = getGroup() === '관리자';
+  const isAdmin = getGroup() === USER_GROUPS.ADMIN;
 
   // 아코디언 상태 관리 (섹션-서브섹션 조합을 키로 사용)
   const [expandedSubsections, setExpandedSubsections] = useState({});
@@ -73,13 +83,6 @@ export default function TimelinePage() {
   const isSubsectionExpanded = (sectionIndex, subIndex) => {
     const key = `${sectionIndex}-${subIndex}`;
     return expandedSubsections[key] !== false; // 기본값 true
-  };
-
-  const getNextStatus = (currentStatus) => {
-    // pending -> working -> completed -> pending 순환
-    const statusOrder = ['pending', 'working', 'completed'];
-    const currentIndex = statusOrder.indexOf(currentStatus || 'pending');
-    return statusOrder[(currentIndex + 1) % statusOrder.length];
   };
 
   const handleStatusChange = async (itemId, currentStatus) => {
@@ -129,25 +132,8 @@ export default function TimelinePage() {
   // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
   const progress = site ? calculateSiteProgress(site) : { timeline: 0, checklist: 0, overall: 0, working: 0, completed: 0, total: 0 };
 
-  const formatCompletedTime = (completedAt) => {
-    if (!completedAt) return null;
-    const date = new Date(completedAt);
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${month}/${day}`;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${month}.${day}`;
-  };
-
-  const getStatusIcon = (status) => {
+  // 상태 아이콘 렌더링 (utils의 getStatusIcon은 문자열 반환, 여기서 컴포넌트로 변환)
+  const renderStatusIcon = (status) => {
     switch (status) {
       case 'completed':
         return <Check className="h-4 w-4" />;
@@ -160,52 +146,22 @@ export default function TimelinePage() {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-blue-500 text-white hover:bg-blue-600 hover:text-white shadow-md shadow-blue-500/30';
-      case 'working':
-        return 'bg-gray-500 text-white hover:bg-gray-600 hover:text-white shadow-md shadow-gray-500/30';
-      case 'pending':
-        return 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground border border-border/60';
-      default:
-        return 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground border border-border/60';
-    }
-  };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground animate-pulse">데이터를 불러오는 중입니다...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="데이터를 불러오는 중입니다..." />;
   }
 
   if (!site) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-lg text-muted-foreground">프로젝트를 찾을 수 없습니다.</p>
-          <Button variant="outline" onClick={() => navigate('/')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            프로젝트 목록으로
-          </Button>
-        </div>
-      </div>
+      <ErrorPage
+        title="프로젝트를 찾을 수 없습니다"
+        message="요청하신 프로젝트가 존재하지 않거나 삭제되었습니다."
+        onRetry={() => navigate('/')}
+        retryText="프로젝트 목록으로"
+      />
     );
   }
 
   // 섹션 순서는 DB 반환 순서에 의존하지 않도록 step 기준으로 정렬한 뒤 도출
-  const parseStepForSort = (step) => {
-    const s = (step || '').toString();
-    const m = s.match(/^(\d+)-(\d+)$/);
-    if (!m) return [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
-    return [Number(m[1]), Number(m[2])];
-  };
-
   const sortedTimeline = [...site.timeline].sort((a, b) => {
     const [a1, a2] = parseStepForSort(a.step);
     const [b1, b2] = parseStepForSort(b.step);
@@ -537,7 +493,7 @@ export default function TimelinePage() {
                           )}
                         >
                           <div className="flex items-center gap-2">
-                            {getStatusIcon(currentStatus)}
+                            {renderStatusIcon(currentStatus)}
                             <span>
                               {currentStatus === 'completed'
                                 ? '완료'
@@ -672,7 +628,7 @@ export default function TimelinePage() {
                           )}
                         >
                           <div className="flex items-center gap-2">
-                            {getStatusIcon(currentStatus)}
+                            {renderStatusIcon(currentStatus)}
                             <span>
                               {currentStatus === 'completed'
                                 ? '완료'

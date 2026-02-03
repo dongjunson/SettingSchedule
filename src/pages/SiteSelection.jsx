@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LoadingSpinner } from '../components/common';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -19,7 +20,7 @@ import {
   useSites,
   useUpdateSite,
 } from '../hooks/useQueries';
-import { STAGE } from '../lib/constants';
+import { STAGE, USER_GROUPS } from '../lib/constants';
 import { useUserStore } from '../lib/userStore';
 
 export default function SiteSelection() {
@@ -38,7 +39,7 @@ export default function SiteSelection() {
   // 사용자 스토어
   const getGroup = useUserStore((state) => state.getGroup);
 
-  const isAdmin = getGroup() === '관리자';
+  const isAdmin = getGroup() === USER_GROUPS.ADMIN;
 
   const [deletingSiteId, setDeletingSiteId] = useState(null);
 
@@ -112,10 +113,7 @@ export default function SiteSelection() {
       </p>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground animate-pulse">데이터를 불러오는 중입니다...</p>
-        </div>
+        <LoadingSpinner message="데이터를 불러오는 중입니다..." fullScreen={false} />
       ) : sitesWithProgress.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">

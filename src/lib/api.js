@@ -1,23 +1,15 @@
 import axios from 'axios';
-import { STATUS } from './constants';
+import { API_CONFIG, ERROR_MESSAGES, hasSupabaseEnv, STATUS } from './constants';
 import { supabase } from './supabase';
 
-// API 기본 URL 설정 (환경변수 또는 기본값)
-// - Supabase 미설정 환경에서도 기존 REST API(있다면)로 동작하도록 fallback을 유지합니다.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-
-// axios 인스턴스 생성 (fallback)
+// axios 인스턴스 생성 (Supabase 미설정 시 fallback)
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-const hasSupabaseEnv = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 const mapTimelineRowToItem = (row) => ({
   // bigint identity can overflow JS number precision; keep as string
@@ -348,19 +340,15 @@ export const repairSiteTimelineOnServer = async (siteId, timelineTemplateItems) 
  */
 export const inviteUserByEmail = async (email, group) => {
   if (!hasSupabaseEnv) {
-    return { ok: false, error: 'Supabase가 설정되지 않았습니다.' };
+    return { ok: false, error: ERROR_MESSAGES.SYSTEM_NOT_CONFIGURED };
   }
   try {
-    // 세션 갱신 후 최신 토큰으로 /api/invite-user 호출 (Vercel rewrite → Supabase Edge Function)
+    // 세션 갱신 후 최신 토큰으로 /api/invite-user 호출 (Vercel rewrite → Edge Function)
     const { data: refreshData } = await supabase.auth.refreshSession();
     const session = refreshData?.session;
     const token = session?.access_token;
     if (!token) {
-      return {
-        ok: false,
-        error:
-          '세션을 갱신할 수 없습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.',
-      };
+      return { ok: false, error: ERROR_MESSAGES.SESSION_REFRESH_FAILED };
     }
 
     const emailTrim = (email || '').toString().trim();
@@ -378,15 +366,12 @@ export const inviteUserByEmail = async (email, group) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (res.status === 401) {
-        return {
-          ok: false,
-          error: '인증이 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.',
-        };
+        return { ok: false, error: ERROR_MESSAGES.SESSION_EXPIRED };
       }
       const msg =
         data?.error ??
         (res.status === 404
-          ? 'Edge Function이 배포되지 않았을 수 있습니다.'
+          ? ERROR_MESSAGES.SERVICE_UNAVAILABLE
           : `요청 실패 (${res.status})`);
       return { ok: false, error: msg };
     }
@@ -396,12 +381,14 @@ export const inviteUserByEmail = async (email, group) => {
     return { ok: true, message: data?.message ?? '초대 메일을 발송했습니다.' };
   } catch (err) {
     console.error('inviteUserByEmail error:', err);
-    const msg = err?.message ?? '';
-    const hint =
-      msg.includes('Failed to send') || msg.includes('fetch') || err?.name === 'TypeError'
-        ? ' Edge Function이 배포되지 않았거나 네트워크를 확인하세요. supabase functions deploy invite-user'
-        : '';
-    return { ok: false, error: (msg || '초대 요청 중 오류가 발생했습니다.') + hint };
+    const isNetworkError =
+      err?.message?.includes('Failed to send') ||
+      err?.message?.includes('fetch') ||
+      err?.name === 'TypeError';
+    if (isNetworkError) {
+      return { ok: false, error: ERROR_MESSAGES.NETWORK_ERROR };
+    }
+    return { ok: false, error: ERROR_MESSAGES.SERVICE_UNAVAILABLE };
   }
 };
 

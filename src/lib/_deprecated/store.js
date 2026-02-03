@@ -12,16 +12,12 @@ import {
   updateSiteOnServer,
   updateTimelineItemOnServer,
 } from './api';
-import { STATUS, STORAGE_KEYS } from './constants';
+import { hasSupabaseEnv, STATUS, STORAGE_KEYS } from './constants';
 import {
   getNewSiteChecklistTemplate,
   getNewSiteTimelineTemplate,
   normalizeNewSiteTimelineForDb,
 } from './siteTemplates';
-
-const hasSupabaseEnv = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 // 초기 타임라인 데이터 - siteTemplates.js를 단일 소스로 사용
 const getInitialTimeline = () =>

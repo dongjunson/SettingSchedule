@@ -1,18 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { STORAGE_KEYS } from './constants';
+import { FALLBACK_USERS, hasSupabaseEnv, STORAGE_KEYS } from './constants';
 import { supabase } from './supabase';
-
-const hasSupabaseEnv = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
-// Supabase 미설정(로컬/데모)일 때만 사용하는 fallback 계정 (이메일로 매칭)
-const FALLBACK_USERS = [
-  { id: 'admin', email: 'admin@saferobo.co.kr', password: 'joy&rising', group: '관리자' },
-  { id: 'rnd', email: 'rnd@saferobo.co.kr', password: 'joy&rising', group: 'R&D' },
-  { id: 'system', email: 'system@saferobo.co.kr', password: 'joy&rising', group: '사업지원팀' },
-];
 
 export const useUserStore = create(
   persist(

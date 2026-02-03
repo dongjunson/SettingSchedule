@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle, Lock } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import loginLogo from '../assets/images/login-logo.png';
 import { Button } from '../components/ui/button';
@@ -13,6 +13,21 @@ export default function SetPasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState({ email: '', group: '' });
+
+  // 현재 세션에서 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserInfo({
+          email: session.user.email || '',
+          group: session.user.user_metadata?.group || '사업지원팀',
+        });
+      }
+    };
+    fetchUserInfo();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,6 +44,7 @@ export default function SetPasswordPage() {
 
     setLoading(true);
     try {
+      // 1. Auth 비밀번호 업데이트
       const { error: updateError } = await supabase.auth.updateUser({
         password,
       });
@@ -36,6 +52,22 @@ export default function SetPasswordPage() {
       if (updateError) {
         setError(updateError.message || '비밀번호 설정에 실패했습니다.');
         return;
+      }
+
+      // 2. app_users 테이블에 사용자 등록 (이메일 @ 앞부분을 id로 사용)
+      if (userInfo.email) {
+        const userId = userInfo.email.replace(/@.+$/, '');
+        const { error: insertError } = await supabase.rpc('register_invited_user', {
+          p_id: userId,
+          p_email: userInfo.email,
+          p_group: userInfo.group,
+          p_password: password,
+        });
+
+        if (insertError) {
+          // 이미 등록된 사용자일 수 있음 (무시)
+          console.warn('app_users 등록 실패 (이미 존재할 수 있음):', insertError.message);
+        }
       }
 
       setSuccess(true);

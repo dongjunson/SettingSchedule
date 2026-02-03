@@ -221,6 +221,109 @@ $$;
 GRANT EXECUTE ON FUNCTION pms_login_by_email(TEXT, TEXT) TO anon, authenticated;
 ```
 
+### 초대 사용자 등록 RPC (register_invited_user)
+
+초대 메일로 가입한 사용자가 비밀번호 설정 시 `app_users` 테이블에 자동 등록되도록 아래 RPC를 SQL Editor에서 실행합니다.
+
+```sql
+-- 초대 사용자를 app_users에 등록하는 함수
+-- 비밀번호 설정 페이지에서 호출됨
+CREATE OR REPLACE FUNCTION register_invited_user(
+  p_id TEXT,
+  p_email TEXT,
+  p_group TEXT,
+  p_password TEXT
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- 이미 존재하면 업데이트, 없으면 삽입
+  INSERT INTO app_users (id, email, group_name, password_hash)
+  VALUES (
+    p_id,
+    p_email,
+    p_group,
+    extensions.crypt(p_password, extensions.gen_salt('bf'))
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    group_name = EXCLUDED.group_name,
+    password_hash = EXCLUDED.password_hash;
+END;
+$$;
+
+-- authenticated 사용자만 호출 가능 (초대 수락 후 세션이 있는 상태)
+GRANT EXECUTE ON FUNCTION register_invited_user(TEXT, TEXT, TEXT, TEXT) TO authenticated;
+```
+
+이 함수는 초대받은 사용자가 비밀번호를 설정할 때 자동으로 `app_users` 테이블에 등록합니다:
+- **id**: 이메일의 @ 앞부분 (예: `hong` from `hong@company.com`)
+- **email**: 전체 이메일 주소
+- **group_name**: 초대 시 지정한 그룹 (관리자, R&D, 사업지원팀)
+- **password_hash**: 설정한 비밀번호의 해시
+
+### 기존 Auth 사용자를 app_users에 동기화
+
+이미 Supabase Auth에 등록된 사용자(초대로 가입한 사용자 포함)를 `app_users` 테이블에 일괄 등록하려면 아래 SQL을 실행합니다.
+
+> **주의**: Auth 사용자의 비밀번호는 직접 접근할 수 없으므로, 이 쿼리는 임시 비밀번호(`changeme123`)로 등록합니다. 사용자에게 비밀번호 변경을 안내하거나, 각 사용자가 로그인 후 비밀번호를 재설정하도록 해야 합니다.
+
+```sql
+-- Auth에 있지만 app_users에 없는 사용자를 app_users에 등록
+-- user_metadata.group이 있으면 해당 그룹으로, 없으면 '사업지원팀'으로 설정
+INSERT INTO app_users (id, email, group_name, password_hash)
+SELECT
+  split_part(au.email, '@', 1) AS id,
+  au.email,
+  COALESCE(au.raw_user_meta_data->>'group', '사업지원팀') AS group_name,
+  extensions.crypt('changeme123', extensions.gen_salt('bf')) AS password_hash
+FROM auth.users au
+WHERE NOT EXISTS (
+  SELECT 1 FROM app_users ap WHERE ap.email = au.email
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- 등록된 사용자 확인
+SELECT id, email, group_name FROM app_users ORDER BY id;
+```
+
+**등록 후 해야 할 일:**
+1. 등록된 사용자에게 임시 비밀번호(`changeme123`)를 안내
+2. 또는 Supabase Auth 대시보드에서 해당 사용자의 비밀번호를 `changeme123`으로 변경
+3. 사용자가 로그인 후 비밀번호 변경하도록 안내
+
+### Auth 사용자 삭제 시 app_users 자동 삭제 (트리거)
+
+Supabase Auth에서 사용자가 삭제되면 `app_users` 테이블에서도 자동으로 삭제되도록 트리거를 설정합니다.
+
+```sql
+-- Auth 사용자 삭제 시 app_users에서도 삭제하는 함수
+CREATE OR REPLACE FUNCTION sync_delete_app_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- 삭제된 Auth 사용자의 이메일로 app_users에서 삭제
+  DELETE FROM app_users WHERE email = OLD.email;
+  RETURN OLD;
+END;
+$$;
+
+-- auth.users 테이블에 DELETE 트리거 생성
+DROP TRIGGER IF EXISTS on_auth_user_deleted ON auth.users;
+CREATE TRIGGER on_auth_user_deleted
+  AFTER DELETE ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_delete_app_user();
+```
+
+이제 Supabase 대시보드 → Authentication → Users에서 사용자를 삭제하면 `app_users` 테이블에서도 자동으로 삭제됩니다.
+
 ### 기존 app_users 기준 이메일 확인 및 업데이트
 
 Auth 사용자 생성 시 어떤 이메일을 쓸지 확인하려면, 기존 `app_users` 목록과 해당 Auth 이메일을 조회합니다.

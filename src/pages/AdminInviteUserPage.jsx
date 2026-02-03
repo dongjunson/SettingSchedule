@@ -84,19 +84,27 @@ export default function AdminInviteUserPage() {
               <label htmlFor="invite-group" className="text-sm font-medium text-foreground">
                 그룹
               </label>
-              <select
-                id="invite-group"
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                disabled={loading}
-              >
-                {GROUP_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="invite-group"
+                  value={group}
+                  onChange={(e) => setGroup(e.target.value)}
+                  className="w-full h-10 px-3 pr-10 rounded-md border border-border bg-background text-foreground appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  disabled={loading}
+                >
+                  {GROUP_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <title>선택</title>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
             {message.text && (
               <p
