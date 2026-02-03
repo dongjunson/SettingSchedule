@@ -271,15 +271,80 @@ UPDATE sites SET stage = '구축중' WHERE stage IS NULL;
 3.  터미널에서 다음을 실행합니다.
 
 ```bash
-supabase functions deploy invite-user
+npx supabase login
+npx supabase link --project-ref <프로젝트ID>
+npx supabase functions deploy invite-user
 ```
 
+(전역에 Supabase CLI가 없으면 `supabase` 대신 `npx supabase`를 사용합니다. 프로젝트 ID는 대시보드 **Project Settings → General**에서 확인합니다.)
+
+- **401 Unauthorized**가 나오는 경우: `supabase/config.toml`에 `[functions.invite-user]` / `verify_jwt = false`가 있어야 합니다. 이 설정으로 **게이트웨이** JWT 검증을 건너뛰고, 함수 내부에서만 `Authorization` 헤더와 `getUser(token)`·관리자 체크로 검증합니다. 설정 추가·수정 후 **반드시 다시** `npx supabase functions deploy invite-user`를 실행해 배포해야 적용됩니다.
+
 4.  Edge Function은 `SUPABASE_SERVICE_ROLE_KEY`를 사용해 Auth Admin API(`inviteUserByEmail`)를 호출합니다. 배포 시 Supabase가 자동으로 주입하므로 별도 설정은 필요 없습니다.
-5.  앱에서 **관리자**로 로그인한 뒤 **관리자 메뉴 → 사용자 초대**에서 이메일과 그룹(관리자 / R&D / 사업지원팀)을 입력하고 **초대 메일 보내기**를 클릭합니다.
-6.  수신자가 메일의 링크를 클릭해 비밀번호를 설정하면, 해당 이메일/비밀번호로 앱에 로그인할 수 있습니다 (초대 사용자는 `app_users`에 없어도 Auth만으로 로그인됩니다).
+5.  **초대 메일 보내는 Edge Function 주소**: `https://lalrhxojwgbuwzybdgod.supabase.co/functions/v1/invite-user` (앱은 `VITE_SUPABASE_URL`이 이 프로젝트 URL로 설정되어 있으면 위 경로로 요청합니다.)
+6.  앱에서 **관리자**로 로그인한 뒤 **관리자 메뉴 → 사용자 초대**에서 이메일과 그룹(관리자 / R&D / 사업지원팀)을 입력하고 **초대 메일 보내기**를 클릭합니다.
+7.  수신자가 메일의 링크를 클릭해 비밀번호를 설정하면, 해당 이메일/비밀번호로 앱에 로그인할 수 있습니다 (초대 사용자는 `app_users`에 없어도 Auth만으로 로그인됩니다).
+
+### 7.1 Supabase 대시보드 설정 (초대 메일이 정상 동작하려면)
+
+초대 메일 보내기가 실패하거나 메일이 오지 않는다면 아래를 반드시 확인하세요.
+
+#### (1) Auth 이메일(SMTP) 설정 — 가장 중요
+
+Supabase **기본 이메일**은 다음 제한이 있습니다.
+
+- **수신 제한**: 조직(Organization)에 추가된 팀 멤버 이메일로만 발송 가능. 그 외 주소는 "Email address not authorized" 등으로 실패할 수 있음.
+- **발송 제한**: 약 2통/시간 등 강한 제한.
+- **용도**: 테스트·개발용이며, 실제 외부 사용자 초대에는 부적합.
+
+**외부 이메일로 초대 메일을 보내려면 Custom SMTP 설정이 필요합니다.**
+
+1.  대시보드 **Project Settings** (왼쪽 하단 톱니바퀴) → **Authentication** 탭으로 이동합니다.
+2.  **SMTP Settings** 섹션에서 **Enable Custom SMTP**를 켭니다.
+3.  다음을 입력합니다.
+    - **Sender email**: 발신 이메일 주소 (예: `noreply@yourdomain.com`). SMTP 제공자가 허용하는 주소여야 합니다.
+    - **Sender name**: 발신자 이름 (예: "PMS").
+    - **Host**: SMTP 서버 주소 (예: `smtp.gmail.com`, `smtp.sendgrid.net`).
+    - **Port**: 587(TLS) 또는 465(SSL) 등 제공자 안내에 따릅니다.
+    - **Username / Password**: 해당 SMTP 계정 인증 정보.
+4.  저장 후, 테스트로 **관리자 계정 이메일**이 아닌 **초대할 외부 이메일**로 초대를 한 번 보내서 수신 여부를 확인하는 것이 좋습니다.
+
+SMTP 제공자 예: Gmail(앱 비밀번호), SendGrid, Resend, AWS SES, Brevo 등.
+
+#### (2) 관리자 계정의 user_metadata (403 "관리자만 초대할 수 있습니다" 방지)
+
+Edge Function은 **요청한 사용자의 JWT**에서 `user_metadata.group === '관리자'`인지 확인합니다.
+
+- 앱에서 **이메일/비밀번호로 로그인**한 경우: `pms_login_by_email` 검증 후 `updateUser({ data: { group: row.user_group } })`로 `user_metadata.group`이 설정됩니다. **관리자**로 로그인했다면 `group`이 `'관리자'`로 들어가 있어야 합니다.
+- **Authentication → Users**에서 해당 관리자 사용자를 열고 **User Metadata**에 `group: "관리자"`가 있는지 확인하세요. 없다면 수동으로 추가하거나, 앱에서 한 번 더 로그아웃 후 관리자 계정으로 다시 로그인하면 설정됩니다.
+
+#### (3) Redirect URL (초대 링크 클릭 후 이동)
+
+초대 메일 링크를 눌렀을 때 리다이렉트될 앱 URL을 **Authentication → URL Configuration → Redirect URLs**에 추가해야 합니다.
+
+- 로컬 개발: `http://localhost:5173/**` (또는 사용 중인 포트)
+- 배포 앱: `https://your-app-domain.com/**`
+
+와일드카드 `/**`로 같은 도메인의 모든 경로를 허용할 수 있습니다.
+
+#### (4) Edge Function 배포·링크 확인
+
+- 배포: 프로젝트 루트에서 `npx supabase link --project-ref <프로젝트ID>` 후 `npx supabase functions deploy invite-user`가 성공했는지 확인합니다.
+- 404가 나오면 해당 프로젝트에 `invite-user` 함수가 배포되지 않은 상태이므로, 위 명령을 다시 실행합니다.
+
+### 7.2 초대가 안 될 때 점검 목록
+
+| 증상 | 확인할 것 |
+|------|------------|
+| "인증이 만료되었습니다" / 401 | **1)** `supabase/config.toml`에 `[functions.invite-user]` / `verify_jwt = false` 있는지 확인. **2)** 있으면 `npx supabase functions deploy invite-user`로 **재배포** 후 다시 시도. **3)** 페이지 새로고침 후 관리자로 이메일 로그인해 초대 시도. |
+| "관리자만 초대할 수 있습니다" / 403 | **Authentication → Users**에서 해당 계정 **User Metadata**에 `group: "관리자"` 있는지 확인. 없으면 앱에서 로그아웃 후 관리자 계정으로 재로그인. |
+| "Edge Function이 배포되지 않았을 수 있습니다" / 404 | `npx supabase link` 후 `npx supabase functions deploy invite-user` 실행. |
+| 요청 실패 / 네트워크 오류 | 브라우저에서 `https://<프로젝트URL>/functions/v1/invite-user` 로 POST가 가능한지, 방화벽/네트워크 확인. |
+| 초대 API는 성공하는데 **메일이 안 옴** | **Custom SMTP** 설정 여부. 기본 SMTP는 외부 주소·제한 때문에 실패할 수 있음. 대시보드 **Auth → SMTP**에서 Custom SMTP 설정 후 재시도. |
+| Supabase Auth 에러 메시지가 그대로 표시됨 | 해당 메시지(예: "User already registered")에 맞게 조치. 같은 이메일 중복 초대 시 재초대 대신 비밀번호 재설정 링크 등 활용. |
 
 **"Failed to send a request to the Edge Function" / "Edge Function에 연결할 수 없습니다"가 나오는 경우**
 
-- **Edge Function이 배포되지 않음**: 터미널에서 `supabase functions deploy invite-user`를 실행했는지 확인합니다.
-- **Supabase 프로젝트 링크**: 로컬에서 배포하려면 `supabase link --project-ref <프로젝트ID>`로 프로젝트를 연결한 뒤 배포합니다.
+- **Edge Function이 배포되지 않음**: 터미널에서 `npx supabase functions deploy invite-user`를 실행했는지 확인합니다.
+- **Supabase 프로젝트 링크**: 로컬에서 배포하려면 `npx supabase link --project-ref <프로젝트ID>`로 프로젝트를 연결한 뒤 배포합니다.
 - **네트워크/방화벽**: 브라우저에서 `https://<프로젝트URL>/functions/v1/invite-user` 로의 POST 요청이 차단되지 않는지 확인합니다.

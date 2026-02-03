@@ -1,0 +1,5 @@
+# Edge Function별 설정 (배포 시 적용)
+# invite-user: 게이트웨이 JWT 검증 비활성화 → 함수 내부에서 Authorization + getUser(token) + 관리자 체크로 검증
+
+[functions.invite-user]
+verify_jwt = false

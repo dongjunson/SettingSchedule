@@ -49,3 +49,7 @@ export const STORAGE_KEYS = {
   CURRENT_USER: 'current_user',
   REMEMBERED_USER_ID: 'remembered_user_id',
 };
+
+// 초대 메일 Edge Function URL (환경변수 VITE_INVITE_USER_URL 없으면 이 주소 사용)
+export const INVITE_USER_FUNCTION_URL =
+  'https://lalrhxojwgbuwzybdgod.supabase.co/functions/v1/invite-user';
