@@ -61,6 +61,14 @@ const formatNumber = (value) => {
   return value.toLocaleString('ko-KR');
 };
 
+// 0원일 때 placeholder 스타일로 표시하는 컴포넌트
+const AmountDisplay = ({ value, unit = '원', placeholderClass = 'text-muted-foreground/50' }) => {
+  if (value === 0) {
+    return <span className={placeholderClass}>0{unit}</span>;
+  }
+  return <>{formatNumber(value)}{unit}</>;
+};
+
 const formatPercent = (value) => `${value.toFixed(2)}%`;
 
 const buildDefaultSalesItems = () =>
@@ -149,8 +157,8 @@ export default function IncomeStatementManagePage() {
         }
 
         setHeader({
-          expectedAmount: incomeData.expectedAmount?.toString() ?? '',
-          contractAmount: incomeData.contractAmount?.toString() ?? '',
+          expectedAmount: incomeData.expectedAmount ? incomeData.expectedAmount.toString() : '',
+          contractAmount: incomeData.contractAmount ? incomeData.contractAmount.toString() : '',
         });
 
         const items = (incomeData.items || [])
@@ -160,7 +168,7 @@ export default function IncomeStatementManagePage() {
             groupName: item.groupName ?? null,
             category: item.category ?? null,
             name: item.name ?? '',
-            amount: item.amount != null ? String(item.amount) : '',
+            amount: item.amount ? String(item.amount) : '',
             note: item.note ?? '',
             paymentType: item.paymentType ?? '',
             spentAt: item.spentAt ?? '',
@@ -534,7 +542,7 @@ export default function IncomeStatementManagePage() {
                     매출 합계
                   </p>
                   <p className="text-lg font-bold text-blue-900 dark:text-blue-100 truncate tabular-nums">
-                    {formatNumber(salesTotal)}원
+                    <AmountDisplay value={salesTotal} placeholderClass="text-blue-400 dark:text-blue-600" />
                   </p>
                 </div>
               </div>
@@ -550,19 +558,19 @@ export default function IncomeStatementManagePage() {
                     <div className="flex justify-between items-baseline gap-4">
                       <span className="text-xs text-orange-600 dark:text-orange-400">변동비</span>
                       <span className="text-sm font-semibold text-orange-800 dark:text-orange-200 tabular-nums">
-                        {formatNumber(variableExpenseTotal)}원
+                        <AmountDisplay value={variableExpenseTotal} placeholderClass="text-orange-400 dark:text-orange-600" />
                       </span>
                     </div>
                     <div className="flex justify-between items-baseline gap-4">
                       <span className="text-xs text-orange-600 dark:text-orange-400">현장 운영비</span>
                       <span className="text-sm font-semibold text-orange-800 dark:text-orange-200 tabular-nums">
-                        {formatNumber(fieldOpsExpenseTotal)}원
+                        <AmountDisplay value={fieldOpsExpenseTotal} placeholderClass="text-orange-400 dark:text-orange-600" />
                       </span>
                     </div>
                   </div>
                   <div className="pt-2 border-t border-orange-200 dark:border-orange-800">
                     <p className="text-lg font-bold text-orange-900 dark:text-orange-100 tabular-nums">
-                      합계 {formatNumber(expenseTotal)}원
+                      합계 <AmountDisplay value={expenseTotal} placeholderClass="text-orange-400 dark:text-orange-600" />
                     </p>
                   </div>
                 </div>
@@ -576,7 +584,7 @@ export default function IncomeStatementManagePage() {
                     손익
                   </p>
                   <p className="text-lg font-bold text-emerald-900 dark:text-emerald-100 truncate tabular-nums">
-                    {formatNumber(profit)}원
+                    <AmountDisplay value={profit} placeholderClass="text-emerald-400 dark:text-emerald-600" />
                   </p>
                 </div>
               </div>
@@ -589,7 +597,11 @@ export default function IncomeStatementManagePage() {
                     수익률
                   </p>
                   <p className="text-lg font-bold text-violet-900 dark:text-violet-100 truncate tabular-nums">
-                    {formatPercent(profitRate)}
+                    {profitRate === 0 ? (
+                      <span className="text-violet-400 dark:text-violet-600">0.00%</span>
+                    ) : (
+                      formatPercent(profitRate)
+                    )}
                   </p>
                 </div>
               </div>
@@ -647,7 +659,7 @@ export default function IncomeStatementManagePage() {
                     type="number"
                     value={item.amount}
                     onChange={(e) => updateItem(setSalesItems, item.id, { amount: e.target.value })}
-                    placeholder="금액"
+                    placeholder="0원"
                   />
                   <div className="col-span-2 flex justify-center">
                     <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-800 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-100 tabular-nums">
@@ -735,7 +747,7 @@ export default function IncomeStatementManagePage() {
                               onChange={(e) =>
                                 updateItem(setExpenseItems, item.id, { amount: e.target.value })
                               }
-                              placeholder="금액"
+                              placeholder="0원"
                             />
                             <div className="col-span-2 flex justify-center">
                               <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-800 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:text-blue-100 tabular-nums">
@@ -775,7 +787,9 @@ export default function IncomeStatementManagePage() {
                   <div className="w-36 shrink-0 border-l bg-muted/50 flex flex-col items-center justify-center p-3 gap-2">
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">합계</p>
-                      <p className="text-base font-bold tabular-nums">{formatNumber(categoryTotal)}원</p>
+                      <p className="text-base font-bold tabular-nums">
+                        <AmountDisplay value={categoryTotal} placeholderClass="text-muted-foreground/50" />
+                      </p>
                     </div>
                     <div className="w-full space-y-1.5">
                       <span className="flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800 px-2 py-1 text-[11px] font-semibold text-blue-800 dark:text-blue-100 tabular-nums">
@@ -798,7 +812,7 @@ export default function IncomeStatementManagePage() {
           <div className="flex items-center gap-4">
             <CardTitle className="text-base">지출 - 현장 운영비</CardTitle>
             <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-800 px-3 py-1 text-xs font-semibold text-orange-800 dark:text-orange-100 tabular-nums">
-              합계 {formatNumber(fieldOpsExpenseTotal)}원
+              합계 <AmountDisplay value={fieldOpsExpenseTotal} placeholderClass="text-orange-500 dark:text-orange-400" />
             </span>
           </div>
           <Button type="button" size="sm" variant="outline" onClick={addFieldOpsItem}>
@@ -900,7 +914,7 @@ export default function IncomeStatementManagePage() {
                       onChange={(e) =>
                         updateItem(setExpenseItems, item.id, { amount: e.target.value })
                       }
-                      placeholder="금액"
+                      placeholder="0원"
                     />
                     <Input
                       className="col-span-4"
