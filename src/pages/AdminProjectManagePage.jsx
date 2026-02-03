@@ -1,8 +1,9 @@
-import { ArrowLeft, Building2, EyeOff, Loader2, CheckCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Building2, EyeOff, Loader2, CheckCircle, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
 import { useDeleteSite, useSites, useUpdateSite } from '../hooks/useQueries';
 import { STAGE } from '../lib/constants';
 
@@ -41,6 +42,13 @@ function StageSection({
   showDeleteButton = false,
   onDeleteSite,
   deletingSiteId,
+  editingSiteId,
+  editingName,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onEditNameChange,
+  savingNameSiteId,
 }) {
   const navigate = useNavigate();
 
@@ -66,7 +74,55 @@ function StageSection({
                     <Building2 className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-foreground truncate">{site.name}</p>
+                    {editingSiteId === site.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editingName}
+                          onChange={(e) => onEditNameChange(e.target.value)}
+                          className="h-8 w-48"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') onSaveEdit(site);
+                            if (e.key === 'Escape') onCancelEdit();
+                          }}
+                          disabled={savingNameSiteId === site.id}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => onSaveEdit(site)}
+                          disabled={savingNameSiteId === site.id}
+                        >
+                          {savingNameSiteId === site.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={onCancelEdit}
+                          disabled={savingNameSiteId === site.id}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group">
+                        <p className="font-medium text-foreground truncate">{site.name}</p>
+                        <button
+                          type="button"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+                          onClick={() => onStartEdit(site)}
+                          title="이름 변경"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                        </button>
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground truncate">{site.id}</p>
                   </div>
                   <span className="text-muted-foreground/60 text-xs">·</span>
@@ -143,6 +199,9 @@ export default function AdminProjectManagePage() {
   const { mutateAsync: deleteSite } = useDeleteSite();
   const [updatingSiteId, setUpdatingSiteId] = useState(null);
   const [deletingSiteId, setDeletingSiteId] = useState(null);
+  const [editingSiteId, setEditingSiteId] = useState(null);
+  const [editingName, setEditingName] = useState('');
+  const [savingNameSiteId, setSavingNameSiteId] = useState(null);
 
   const hiddenSites = sites.filter((s) => s.stage !== STAGE.IN_PROGRESS && s.stage !== STAGE.COMPLETED);
   const inProgressSites = sites.filter((s) => s.stage === STAGE.IN_PROGRESS);
@@ -176,6 +235,37 @@ export default function AdminProjectManagePage() {
     }
   };
 
+  const handleStartEdit = (site) => {
+    setEditingSiteId(site.id);
+    setEditingName(site.name);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSiteId(null);
+    setEditingName('');
+  };
+
+  const handleSaveEdit = async (site) => {
+    const trimmedName = editingName.trim();
+    if (!trimmedName) {
+      window.alert('프로젝트 이름을 입력해주세요.');
+      return;
+    }
+    if (trimmedName === site.name) {
+      handleCancelEdit();
+      return;
+    }
+    setSavingNameSiteId(site.id);
+    try {
+      await updateSite({ siteId: site.id, updates: { name: trimmedName } });
+      handleCancelEdit();
+    } catch (err) {
+      window.alert(err?.message || '이름 변경에 실패했습니다.');
+    } finally {
+      setSavingNameSiteId(null);
+    }
+  };
+
   return (
     <div className="py-6">
       <Button variant="ghost" onClick={() => navigate('/')} className="mb-6">
@@ -203,18 +293,39 @@ export default function AdminProjectManagePage() {
             showDeleteButton
             onDeleteSite={handleDeleteSite}
             deletingSiteId={deletingSiteId}
+            editingSiteId={editingSiteId}
+            editingName={editingName}
+            onStartEdit={handleStartEdit}
+            onCancelEdit={handleCancelEdit}
+            onSaveEdit={handleSaveEdit}
+            onEditNameChange={setEditingName}
+            savingNameSiteId={savingNameSiteId}
           />
           <StageSection
             title="구축중"
             sites={inProgressSites}
             onSetStage={handleSetStage}
             updatingSiteId={updatingSiteId}
+            editingSiteId={editingSiteId}
+            editingName={editingName}
+            onStartEdit={handleStartEdit}
+            onCancelEdit={handleCancelEdit}
+            onSaveEdit={handleSaveEdit}
+            onEditNameChange={setEditingName}
+            savingNameSiteId={savingNameSiteId}
           />
           <StageSection
             title="구축완료"
             sites={completedSites}
             onSetStage={handleSetStage}
             updatingSiteId={updatingSiteId}
+            editingSiteId={editingSiteId}
+            editingName={editingName}
+            onStartEdit={handleStartEdit}
+            onCancelEdit={handleCancelEdit}
+            onSaveEdit={handleSaveEdit}
+            onEditNameChange={setEditingName}
+            savingNameSiteId={savingNameSiteId}
           />
         </div>
       )}
