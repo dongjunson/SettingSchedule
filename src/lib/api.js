@@ -351,12 +351,16 @@ export const inviteUserByEmail = async (email, group) => {
     return { ok: false, error: 'Supabase가 설정되지 않았습니다.' };
   }
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // 초대 API는 갱신된 토큰만 사용 (만료된 토큰 전송 시 401 → 로그아웃 방지)
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    const session = refreshData?.session;
     const token = session?.access_token;
     if (!token) {
-      return { ok: false, error: '로그인 세션이 없습니다. 다시 로그인해 주세요.' };
+      return {
+        ok: false,
+        error:
+          '세션을 갱신할 수 없습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.',
+      };
     }
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
@@ -375,13 +379,19 @@ export const inviteUserByEmail = async (email, group) => {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      if (res.status === 401) {
+        // 로그아웃하지 않음. 새로고침 후 재시도 유도
+        return {
+          ok: false,
+          error:
+            '인증이 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.',
+        };
+      }
       const msg =
         data?.error ??
         (res.status === 404
           ? 'Edge Function이 배포되지 않았을 수 있습니다. supabase functions deploy invite-user 를 실행하세요.'
-          : res.status === 401
-            ? '인증이 만료되었습니다. 다시 로그인해 주세요.'
-            : `요청 실패 (${res.status})`);
+          : `요청 실패 (${res.status})`);
       return { ok: false, error: msg };
     }
     if (data?.error) {
