@@ -1,4 +1,15 @@
-import { ArrowLeft, Download, Loader2, Plus, Receipt, Save, TrendingUp, Wallet, BadgePercent, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  BadgePercent,
+  Download,
+  Loader2,
+  Plus,
+  Receipt,
+  Save,
+  Trash2,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorPage, LoadingSpinner } from '../components/common';
@@ -29,17 +40,17 @@ const VARIABLE_EXPENSE_TEMPLATE = {
     'Lora 중계기',
     'Lora 중계기 인프라비용',
     'VPN 서버',
-    '스마트워치',
+    '스마트 워치',
     '스마트 비콘',
     '이동형 가스검측기',
-    '고정형가스검측기',
+    '고정형 가스검측기',
     '현장모니터링(태블릿)',
     '운영서버',
-    '모니터링시스템',
+    '모니터링 시스템',
     '안전모,위치 거치대',
     '잡자재',
   ],
-  'S/W': ['운영서버 S/W', '네트워크 SW'],
+  'S/W': ['운영서버 S/W', '네트워크 S/W'],
   판관비: ['판관비'],
   영업비용: ['법률법인', '영업 활동비', '접대비'],
   인건비: ['현장투입인력 m/m'],
@@ -66,7 +77,12 @@ const AmountDisplay = ({ value, unit = '원', placeholderClass = 'text-muted-for
   if (value === 0) {
     return <span className={placeholderClass}>0{unit}</span>;
   }
-  return <>{formatNumber(value)}{unit}</>;
+  return (
+    <>
+      {formatNumber(value)}
+      {unit}
+    </>
+  );
 };
 
 const formatPercent = (value) => `${value.toFixed(2)}%`;
@@ -203,9 +219,12 @@ export default function IncomeStatementManagePage() {
   // 2분마다 자동 저장
   useEffect(() => {
     if (!siteId || loading) return;
-    const interval = setInterval(() => {
-      performSave(dataRef.current);
-    }, 2 * 60 * 1000);
+    const interval = setInterval(
+      () => {
+        performSave(dataRef.current);
+      },
+      2 * 60 * 1000
+    );
     return () => clearInterval(interval);
   }, [siteId, loading]);
 
@@ -324,19 +343,19 @@ export default function IncomeStatementManagePage() {
 
     // 현장 운영비 유효성 검사
     const fieldOpsItems = e.filter((item) => item.groupName === 'field_ops');
-    
+
     // 금액이 없으면 에러
     const noAmount = fieldOpsItems.filter((item) => !item.amount);
     if (noAmount.length > 0) {
       return '현장 운영비 항목에 금액을 입력해 주세요.';
     }
-    
+
     // 날짜가 없으면 에러
     const noDate = fieldOpsItems.filter((item) => !item.spentAt);
     if (noDate.length > 0) {
       return '현장 운영비 항목에 날짜를 선택해 주세요.';
     }
-    
+
     return null;
   };
 
@@ -437,7 +456,11 @@ export default function IncomeStatementManagePage() {
 
   const lastSavedLabel =
     lastSavedAt != null
-      ? new Date(lastSavedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      ? new Date(lastSavedAt).toLocaleTimeString('ko-KR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
       : null;
 
   return (
@@ -494,120 +517,136 @@ export default function IncomeStatementManagePage() {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50 shadow-sm pb-4 -mb-4">
         <div className="relative">
           <Card className="border-border/60 shadow-none">
-          <CardContent className="p-4 md:p-5 space-y-5">
-            {/* 상단 입력 */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label
-                  htmlFor="expectedAmount"
-                  className="text-sm font-medium text-muted-foreground"
-                >
-                  가예상금액
-                </label>
-                <Input
-                  id="expectedAmount"
-                  type="number"
-                  value={header.expectedAmount}
-                  onChange={(e) => handleHeaderChange('expectedAmount', e.target.value)}
-                  placeholder="예: 13000000"
-                  className="h-10"
-                />
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="contractAmount"
-                  className="text-sm font-medium text-muted-foreground"
-                >
-                  계약금액
-                </label>
-                <Input
-                  id="contractAmount"
-                  type="number"
-                  value={header.contractAmount}
-                  onChange={(e) => handleHeaderChange('contractAmount', e.target.value)}
-                  placeholder="예: 13770000"
-                  className="h-10"
-                />
-              </div>
-            </div>
-
-            {/* 자동 계산 - 가로 배치 + 색상 */}
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 px-5 py-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
-                  <Wallet className="h-5 w-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    매출 합계
-                  </p>
-                  <p className="text-lg font-bold text-blue-900 dark:text-blue-100 truncate tabular-nums">
-                    <AmountDisplay value={salesTotal} placeholderClass="text-blue-400 dark:text-blue-600" />
-                  </p>
+            <CardContent className="p-4 md:p-5 space-y-5">
+              {/* 상단 입력 */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="expectedAmount"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    가예상금액
+                  </label>
+                  <Input
+                    id="expectedAmount"
+                    type="number"
+                    value={header.expectedAmount}
+                    onChange={(e) => handleHeaderChange('expectedAmount', e.target.value)}
+                    placeholder="예: 13000000"
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="contractAmount"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    계약금액
+                  </label>
+                  <Input
+                    id="contractAmount"
+                    type="number"
+                    value={header.contractAmount}
+                    onChange={(e) => handleHeaderChange('contractAmount', e.target.value)}
+                    placeholder="예: 13770000"
+                    className="h-10"
+                  />
                 </div>
               </div>
-              <div className="flex-1 min-w-[240px] flex items-start gap-4 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/50 px-5 py-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 mt-0.5">
-                  <Receipt className="h-5 w-5" />
-                </span>
-                <div className="min-w-0 flex-1 space-y-2">
-                  <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
-                    지출
-                  </p>
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-baseline gap-4">
-                      <span className="text-xs text-orange-600 dark:text-orange-400">변동비</span>
-                      <span className="text-sm font-semibold text-orange-800 dark:text-orange-200 tabular-nums">
-                        <AmountDisplay value={variableExpenseTotal} placeholderClass="text-orange-400 dark:text-orange-600" />
-                      </span>
+
+              {/* 자동 계산 - 가로 배치 + 색상 */}
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 px-5 py-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                    <Wallet className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      매출 합계
+                    </p>
+                    <p className="text-lg font-bold text-blue-900 dark:text-blue-100 truncate tabular-nums">
+                      <AmountDisplay
+                        value={salesTotal}
+                        placeholderClass="text-blue-400 dark:text-blue-600"
+                      />
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[240px] flex items-start gap-4 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/50 px-5 py-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 mt-0.5">
+                    <Receipt className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300">지출</p>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-baseline gap-4">
+                        <span className="text-xs text-orange-600 dark:text-orange-400">변동비</span>
+                        <span className="text-sm font-semibold text-orange-800 dark:text-orange-200 tabular-nums">
+                          <AmountDisplay
+                            value={variableExpenseTotal}
+                            placeholderClass="text-orange-400 dark:text-orange-600"
+                          />
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-baseline gap-4">
+                        <span className="text-xs text-orange-600 dark:text-orange-400">
+                          현장 운영비
+                        </span>
+                        <span className="text-sm font-semibold text-orange-800 dark:text-orange-200 tabular-nums">
+                          <AmountDisplay
+                            value={fieldOpsExpenseTotal}
+                            placeholderClass="text-orange-400 dark:text-orange-600"
+                          />
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-baseline gap-4">
-                      <span className="text-xs text-orange-600 dark:text-orange-400">현장 운영비</span>
-                      <span className="text-sm font-semibold text-orange-800 dark:text-orange-200 tabular-nums">
-                        <AmountDisplay value={fieldOpsExpenseTotal} placeholderClass="text-orange-400 dark:text-orange-600" />
-                      </span>
+                    <div className="pt-2 border-t border-orange-200 dark:border-orange-800">
+                      <p className="text-lg font-bold text-orange-900 dark:text-orange-100 tabular-nums">
+                        합계{' '}
+                        <AmountDisplay
+                          value={expenseTotal}
+                          placeholderClass="text-orange-400 dark:text-orange-600"
+                        />
+                      </p>
                     </div>
                   </div>
-                  <div className="pt-2 border-t border-orange-200 dark:border-orange-800">
-                    <p className="text-lg font-bold text-orange-900 dark:text-orange-100 tabular-nums">
-                      합계 <AmountDisplay value={expenseTotal} placeholderClass="text-orange-400 dark:text-orange-600" />
+                </div>
+                <div className="flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-5 py-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      손익
+                    </p>
+                    <p className="text-lg font-bold text-emerald-900 dark:text-emerald-100 truncate tabular-nums">
+                      <AmountDisplay
+                        value={profit}
+                        placeholderClass="text-emerald-400 dark:text-emerald-600"
+                      />
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[140px] flex items-center gap-4 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/50 px-5 py-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400">
+                    <BadgePercent className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-violet-700 dark:text-violet-300">
+                      수익률
+                    </p>
+                    <p className="text-lg font-bold text-violet-900 dark:text-violet-100 truncate tabular-nums">
+                      {profitRate === 0 ? (
+                        <span className="text-violet-400 dark:text-violet-600">0.00%</span>
+                      ) : (
+                        formatPercent(profitRate)
+                      )}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-5 py-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
-                  <TrendingUp className="h-5 w-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                    손익
-                  </p>
-                  <p className="text-lg font-bold text-emerald-900 dark:text-emerald-100 truncate tabular-nums">
-                    <AmountDisplay value={profit} placeholderClass="text-emerald-400 dark:text-emerald-600" />
-                  </p>
-                </div>
-              </div>
-              <div className="flex-1 min-w-[140px] flex items-center gap-4 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/50 px-5 py-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400">
-                  <BadgePercent className="h-5 w-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-violet-700 dark:text-violet-300">
-                    수익률
-                  </p>
-                  <p className="text-lg font-bold text-violet-900 dark:text-violet-100 truncate tabular-nums">
-                    {profitRate === 0 ? (
-                      <span className="text-violet-400 dark:text-violet-600">0.00%</span>
-                    ) : (
-                      formatPercent(profitRate)
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
           {isScrolled && (
             <Button
               type="button"
@@ -616,13 +655,13 @@ export default function IncomeStatementManagePage() {
               onClick={handleSave}
               disabled={saving}
               className="absolute -right-16 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full shadow-lg z-10"
-              title={lastSavedLabel != null ? `저장 (마지막 저장: ${lastSavedLabel})` : '저장 (2분마다 자동 저장)'}
+              title={
+                lastSavedLabel != null
+                  ? `저장 (마지막 저장: ${lastSavedLabel})`
+                  : '저장 (2분마다 자동 저장)'
+              }
             >
-              {saving ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Save className="h-5 w-5" />
-              )}
+              {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
             </Button>
           )}
         </div>
@@ -788,7 +827,10 @@ export default function IncomeStatementManagePage() {
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">합계</p>
                       <p className="text-base font-bold tabular-nums">
-                        <AmountDisplay value={categoryTotal} placeholderClass="text-muted-foreground/50" />
+                        <AmountDisplay
+                          value={categoryTotal}
+                          placeholderClass="text-muted-foreground/50"
+                        />
                       </p>
                     </div>
                     <div className="w-full space-y-1.5">
@@ -812,7 +854,11 @@ export default function IncomeStatementManagePage() {
           <div className="flex items-center gap-4">
             <CardTitle className="text-base">지출 - 현장 운영비</CardTitle>
             <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-800 px-3 py-1 text-xs font-semibold text-orange-800 dark:text-orange-100 tabular-nums">
-              합계 <AmountDisplay value={fieldOpsExpenseTotal} placeholderClass="text-orange-500 dark:text-orange-400" />
+              합계{' '}
+              <AmountDisplay
+                value={fieldOpsExpenseTotal}
+                placeholderClass="text-orange-500 dark:text-orange-400"
+              />
             </span>
           </div>
           <Button type="button" size="sm" variant="outline" onClick={addFieldOpsItem}>
@@ -821,9 +867,7 @@ export default function IncomeStatementManagePage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {fieldOpsItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              현장 운영비 내역을 추가해 주세요.
-            </p>
+            <p className="text-sm text-muted-foreground">현장 운영비 내역을 추가해 주세요.</p>
           ) : (
             <div className="space-y-2">
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground">
@@ -848,9 +892,7 @@ export default function IncomeStatementManagePage() {
                       {isCustomMode ? (
                         <div className="relative">
                           <Input
-                            value={
-                              item.paymentType === CUSTOM_PAYMENT_TYPE ? '' : item.paymentType
-                            }
+                            value={item.paymentType === CUSTOM_PAYMENT_TYPE ? '' : item.paymentType}
                             onChange={(e) =>
                               updateItem(setExpenseItems, item.id, { paymentType: e.target.value })
                             }
@@ -859,7 +901,9 @@ export default function IncomeStatementManagePage() {
                           <button
                             type="button"
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
-                            onClick={() => updateItem(setExpenseItems, item.id, { paymentType: '' })}
+                            onClick={() =>
+                              updateItem(setExpenseItems, item.id, { paymentType: '' })
+                            }
                           >
                             닫기
                           </button>
