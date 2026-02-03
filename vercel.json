@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/invite-user",
+      "destination": "https://lalrhxojwgbuwzybdgod.supabase.co/functions/v1/invite-user"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

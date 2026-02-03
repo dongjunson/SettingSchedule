@@ -10,4 +10,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      // 로컬 개발 시 /api/invite-user → Supabase Edge Function으로 프록시
+      '/api/invite-user': {
+        target: 'https://lalrhxojwgbuwzybdgod.supabase.co',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/invite-user/, '/functions/v1/invite-user'),
+      },
+    },
+  },
 });

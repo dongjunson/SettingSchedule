@@ -281,7 +281,7 @@ npx supabase functions deploy invite-user
 - **401 Unauthorized**가 나오는 경우: `supabase/config.toml`에 `[functions.invite-user]` / `verify_jwt = false`가 있어야 합니다. 이 설정으로 **게이트웨이** JWT 검증을 건너뛰고, 함수 내부에서만 `Authorization` 헤더와 `getUser(token)`·관리자 체크로 검증합니다. 설정 추가·수정 후 **반드시 다시** `npx supabase functions deploy invite-user`를 실행해 배포해야 적용됩니다.
 
 4.  Edge Function은 `SUPABASE_SERVICE_ROLE_KEY`를 사용해 Auth Admin API(`inviteUserByEmail`)를 호출합니다. 배포 시 Supabase가 자동으로 주입하므로 별도 설정은 필요 없습니다.
-5.  **초대 메일 보내는 Edge Function 주소**: `https://lalrhxojwgbuwzybdgod.supabase.co/functions/v1/invite-user` (앱은 `VITE_SUPABASE_URL`이 이 프로젝트 URL로 설정되어 있으면 위 경로로 요청합니다.)
+5.  **초대 메일 API 경로**: 앱은 `/api/invite-user`로 요청하고, `vercel.json` 리라이트가 `https://lalrhxojwgbuwzybdgod.supabase.co/functions/v1/invite-user`로 전달합니다.
 6.  앱에서 **관리자**로 로그인한 뒤 **관리자 메뉴 → 사용자 초대**에서 이메일과 그룹(관리자 / R&D / 사업지원팀)을 입력하고 **초대 메일 보내기**를 클릭합니다.
 7.  수신자가 메일의 링크를 클릭해 비밀번호를 설정하면, 해당 이메일/비밀번호로 앱에 로그인할 수 있습니다 (초대 사용자는 `app_users`에 없어도 Auth만으로 로그인됩니다).
 

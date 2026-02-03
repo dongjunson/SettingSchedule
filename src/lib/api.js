@@ -351,10 +351,11 @@ export const inviteUserByEmail = async (email, group) => {
     return { ok: false, error: 'Supabase가 설정되지 않았습니다.' };
   }
   try {
-    // 세션 갱신 후 Supabase 클라이언트 invoke 사용 (Authorization·apikey 자동 처리로 401 방지)
+    // 세션 갱신 후 최신 토큰으로 /api/invite-user 호출 (Vercel rewrite → Supabase Edge Function)
     const { data: refreshData } = await supabase.auth.refreshSession();
     const session = refreshData?.session;
-    if (!session?.access_token) {
+    const token = session?.access_token;
+    if (!token) {
       return {
         ok: false,
         error:
@@ -364,22 +365,30 @@ export const inviteUserByEmail = async (email, group) => {
 
     const emailTrim = (email || '').toString().trim();
     const groupName = (group || '사업지원팀').toString().trim();
-    const { data, error: invokeError } = await supabase.functions.invoke(
-      'invite-user',
-      {
-        body: { email: emailTrim, group: groupName },
-      }
-    );
 
-    if (invokeError) {
-      const msg = invokeError.message ?? '';
-      const is401 = msg.toLowerCase().includes('401') || invokeError.name === 'FunctionsHttpError';
-      return {
-        ok: false,
-        error: is401
-          ? '인증이 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.'
-          : msg || '초대 요청 중 오류가 발생했습니다.',
-      };
+    const res = await fetch('/api/invite-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ email: emailTrim, group: groupName }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 401) {
+        return {
+          ok: false,
+          error: '인증이 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.',
+        };
+      }
+      const msg =
+        data?.error ??
+        (res.status === 404
+          ? 'Edge Function이 배포되지 않았을 수 있습니다.'
+          : `요청 실패 (${res.status})`);
+      return { ok: false, error: msg };
     }
     if (data?.error) {
       return { ok: false, error: data.error };
