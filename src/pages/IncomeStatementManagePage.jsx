@@ -1,4 +1,4 @@
-import { ArrowLeft, Loader2, Plus, Receipt, Save, TrendingUp, Wallet, BadgePercent, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Plus, Receipt, Save, TrendingUp, Wallet, BadgePercent, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorPage, LoadingSpinner } from '../components/common';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input';
 import { toast } from '../hooks/use-toast';
 import { fetchIncomeStatement, fetchSiteById, upsertIncomeStatement } from '../lib/api';
+import { exportIncomeStatementToExcel } from '../lib/exportExcel';
 
 const DEFAULT_SALES_ITEMS = ['선금', '잔금'];
 const PAYMENT_TYPES = [
@@ -401,6 +402,28 @@ export default function IncomeStatementManagePage() {
 
   const handleSave = () => performSave(dataRef.current);
 
+  const handleExportExcel = () => {
+    exportIncomeStatementToExcel({
+      siteName,
+      header,
+      salesItems,
+      expenseItems,
+      totals: {
+        salesTotal,
+        variableExpenseTotal,
+        fieldOpsExpenseTotal,
+        expenseTotal,
+        profit,
+        profitRate,
+      },
+    });
+    toast({
+      variant: 'success',
+      title: '엑셀 다운로드',
+      description: '손익계산서가 엑셀 파일로 저장되었습니다.',
+    });
+  };
+
   if (loading) return <LoadingSpinner message="손익계산서를 불러오는 중입니다..." />;
   if (error) return <ErrorPage title="오류" message={error} onRetry={() => navigate(-1)} />;
 
@@ -424,28 +447,39 @@ export default function IncomeStatementManagePage() {
           </Button>
           <h1 className="text-2xl font-bold text-foreground truncate">{siteName} 손익계산서</h1>
         </div>
-        <Button
-          type="button"
-          variant="default"
-          onClick={handleSave}
-          disabled={saving}
-          className="shrink-0 gap-2"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>저장 중...</span>
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              <span>저장</span>
-              {lastSavedLabel != null && (
-                <span className="text-xs opacity-80">({lastSavedLabel})</span>
-              )}
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportExcel}
+            className="shrink-0 gap-2"
+          >
+            <Download className="h-4 w-4" />
+            <span>엑셀 저장</span>
+          </Button>
+          <Button
+            type="button"
+            variant="default"
+            onClick={handleSave}
+            disabled={saving}
+            className="shrink-0 gap-2"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>저장 중...</span>
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                <span>저장</span>
+                {lastSavedLabel != null && (
+                  <span className="text-xs opacity-80">({lastSavedLabel})</span>
+                )}
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Sticky: 상단 입력 + 자동 계산 + 우측 둥근 저장 버튼 (스크롤 시에만) */}
@@ -489,47 +523,75 @@ export default function IncomeStatementManagePage() {
               </div>
             </div>
 
-            {/* 자동 계산 - 가로 배치 */}
-            <div className="flex flex-wrap gap-3">
-              <div className="flex-1 min-w-[140px] rounded-lg border bg-muted/30 px-4 py-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Wallet className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">매출 합계</p>
+            {/* 자동 계산 - 가로 배치 + 색상 */}
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 px-5 py-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                  <Wallet className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    매출 합계
+                  </p>
+                  <p className="text-lg font-bold text-blue-900 dark:text-blue-100 truncate tabular-nums">
+                    {formatNumber(salesTotal)}원
+                  </p>
                 </div>
-                <p className="text-lg font-bold tabular-nums">{formatNumber(salesTotal)}원</p>
               </div>
-              <div className="flex-1 min-w-[200px] rounded-lg border bg-muted/30 px-4 py-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Receipt className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">지출</p>
+              <div className="flex-1 min-w-[240px] flex items-start gap-4 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/50 px-5 py-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 mt-0.5">
+                  <Receipt className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                    지출
+                  </p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-baseline gap-4">
+                      <span className="text-xs text-orange-600 dark:text-orange-400">변동비</span>
+                      <span className="text-sm font-semibold text-orange-800 dark:text-orange-200 tabular-nums">
+                        {formatNumber(variableExpenseTotal)}원
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-baseline gap-4">
+                      <span className="text-xs text-orange-600 dark:text-orange-400">현장 운영비</span>
+                      <span className="text-sm font-semibold text-orange-800 dark:text-orange-200 tabular-nums">
+                        {formatNumber(fieldOpsExpenseTotal)}원
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-orange-200 dark:border-orange-800">
+                    <p className="text-lg font-bold text-orange-900 dark:text-orange-100 tabular-nums">
+                      합계 {formatNumber(expenseTotal)}원
+                    </p>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-300 tabular-nums">
-                    변동비 {formatNumber(variableExpenseTotal)}원
-                  </span>
-                  <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-300 tabular-nums">
-                    현장 {formatNumber(fieldOpsExpenseTotal)}원
-                  </span>
-                </div>
-                <p className="text-lg font-bold tabular-nums">{formatNumber(expenseTotal)}원</p>
               </div>
-              <div className="flex-1 min-w-[140px] rounded-lg border bg-muted/30 px-4 py-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">손익</p>
+              <div className="flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-5 py-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                  <TrendingUp className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                    손익
+                  </p>
+                  <p className="text-lg font-bold text-emerald-900 dark:text-emerald-100 truncate tabular-nums">
+                    {formatNumber(profit)}원
+                  </p>
                 </div>
-                <p className={`text-lg font-bold tabular-nums ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {formatNumber(profit)}원
-                </p>
               </div>
-              <div className="flex-1 min-w-[120px] rounded-lg border bg-muted/30 px-4 py-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <BadgePercent className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">수익률</p>
+              <div className="flex-1 min-w-[140px] flex items-center gap-4 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/50 px-5 py-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400">
+                  <BadgePercent className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-violet-700 dark:text-violet-300">
+                    수익률
+                  </p>
+                  <p className="text-lg font-bold text-violet-900 dark:text-violet-100 truncate tabular-nums">
+                    {formatPercent(profitRate)}
+                  </p>
                 </div>
-                <p className={`text-lg font-bold tabular-nums ${profitRate >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {formatPercent(profitRate)}
-                </p>
               </div>
             </div>
           </CardContent>
@@ -562,18 +624,18 @@ export default function IncomeStatementManagePage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground mb-3">
+          <div className="grid grid-cols-12 gap-1.5 text-xs font-medium text-muted-foreground mb-3">
             <div className="col-span-3">항목명</div>
             <div className="col-span-2">금액</div>
-            <div className="col-span-2">손익대비</div>
-            <div className="col-span-2">매출 내</div>
+            <div className="col-span-2 text-center">손익대비</div>
+            <div className="col-span-2 text-center">매출 내</div>
             <div className="col-span-3">비고</div>
           </div>
           <div className="space-y-3">
             {salesItems.map((item) => {
               const amount = toNumber(item.amount);
               return (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
+                <div key={item.id} className="grid grid-cols-12 gap-1.5 items-center">
                   <Input
                     className="col-span-3"
                     value={item.name}
@@ -587,13 +649,13 @@ export default function IncomeStatementManagePage() {
                     onChange={(e) => updateItem(setSalesItems, item.id, { amount: e.target.value })}
                     placeholder="금액"
                   />
-                  <div className="col-span-2">
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 tabular-nums">
+                  <div className="col-span-2 flex justify-center">
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-800 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-100 tabular-nums">
                       손익 {formatPercent(ratio(amount, profit))}
                     </span>
                   </div>
-                  <div className="col-span-2">
-                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 tabular-nums">
+                  <div className="col-span-2 flex justify-center">
+                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-800 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:text-blue-100 tabular-nums">
                       매출 {formatPercent(ratio(amount, salesTotal))}
                     </span>
                   </div>
@@ -646,18 +708,18 @@ export default function IncomeStatementManagePage() {
                         <Plus className="h-4 w-4 mr-1" /> 항목 추가
                       </Button>
                     </div>
-                    <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground mb-2">
+                    <div className="grid grid-cols-12 gap-1.5 text-xs font-medium text-muted-foreground mb-2">
                       <div className="col-span-3">항목명</div>
                       <div className="col-span-2">금액</div>
-                      <div className="col-span-2">매출대비</div>
-                      <div className="col-span-2">지출대비</div>
+                      <div className="col-span-2 text-center">매출대비</div>
+                      <div className="col-span-2 text-center">지출대비</div>
                       <div className="col-span-3">비고</div>
                     </div>
                     <div className="space-y-3">
                       {rows.map((item) => {
                         const amount = toNumber(item.amount);
                         return (
-                          <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
+                          <div key={item.id} className="grid grid-cols-12 gap-1.5 items-center">
                             <Input
                               className="col-span-3"
                               value={item.name}
@@ -675,13 +737,13 @@ export default function IncomeStatementManagePage() {
                               }
                               placeholder="금액"
                             />
-                            <div className="col-span-2">
-                              <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 tabular-nums">
+                            <div className="col-span-2 flex justify-center">
+                              <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-800 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:text-blue-100 tabular-nums">
                                 매출 {formatPercent(ratio(amount, contractAmount))}
                               </span>
                             </div>
-                            <div className="col-span-2">
-                              <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-300 tabular-nums">
+                            <div className="col-span-2 flex justify-center">
+                              <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-800 px-2.5 py-1 text-xs font-semibold text-orange-800 dark:text-orange-100 tabular-nums">
                                 지출 {formatPercent(ratio(amount, expenseTotal))}
                               </span>
                             </div>
@@ -716,10 +778,10 @@ export default function IncomeStatementManagePage() {
                       <p className="text-base font-bold tabular-nums">{formatNumber(categoryTotal)}원</p>
                     </div>
                     <div className="w-full space-y-1.5">
-                      <span className="flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300 tabular-nums">
+                      <span className="flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800 px-2 py-1 text-[11px] font-semibold text-blue-800 dark:text-blue-100 tabular-nums">
                         매출 {formatPercent(ratio(categoryTotal, contractAmount))}
                       </span>
-                      <span className="flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:text-orange-300 tabular-nums">
+                      <span className="flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-800 px-2 py-1 text-[11px] font-semibold text-orange-800 dark:text-orange-100 tabular-nums">
                         지출 {formatPercent(ratio(categoryTotal, expenseTotal))}
                       </span>
                     </div>
@@ -735,7 +797,7 @@ export default function IncomeStatementManagePage() {
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <CardTitle className="text-base">지출 - 현장 운영비</CardTitle>
-            <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/40 px-2.5 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-300 tabular-nums">
+            <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-800 px-3 py-1 text-xs font-semibold text-orange-800 dark:text-orange-100 tabular-nums">
               합계 {formatNumber(fieldOpsExpenseTotal)}원
             </span>
           </div>
