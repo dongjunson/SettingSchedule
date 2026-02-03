@@ -37,6 +37,33 @@ const mapChecklistRowToItem = (row) => ({
   checked: Boolean(row.checked),
 });
 
+const mapIncomeStatementRow = (row) => ({
+  // bigint identity can overflow JS number precision; keep as string
+  id: String(row.id),
+  siteId: row.site_id ?? null,
+  expectedAmount: row.expected_amount ?? null,
+  contractAmount: row.contract_amount ?? null,
+  createdAt: row.created_at ?? null,
+  updatedAt: row.updated_at ?? null,
+});
+
+const mapIncomeStatementItemRow = (row) => ({
+  // bigint identity can overflow JS number precision; keep as string
+  id: String(row.id),
+  statementId: row.statement_id ?? null,
+  type: row.type ?? 'sales',
+  groupName: row.group_name ?? null,
+  category: row.category ?? null,
+  name: row.name ?? '',
+  amount: row.amount ?? 0,
+  note: row.note ?? '',
+  paymentType: row.payment_type ?? null,
+  spentAt: row.spent_at ?? null,
+  description: row.description ?? null,
+  orderIndex: row.order_index ?? 0,
+  createdAt: row.created_at ?? null,
+});
+
 const mapSiteRowToSite = (row) => ({
   id: row.id,
   name: row.name,
@@ -47,6 +74,38 @@ const mapSiteRowToSite = (row) => ({
     ? row.checklist_items.map(mapChecklistRowToItem)
     : [],
 });
+
+// 사업소 기본 정보만 가져오기
+export const fetchSiteById = async (siteId) => {
+  if (hasSupabaseEnv) {
+    const { data, error } = await supabase
+      .from('sites')
+      .select('id, name, stage, created_at')
+      .eq('id', siteId)
+      .single();
+
+    if (error) {
+      console.error('Supabase fetchSiteById error:', error);
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      stage: data.stage ?? null,
+      createdAt: data.created_at ?? null,
+    };
+  }
+
+  // fallback REST API
+  try {
+    const response = await api.get(`/sites/${siteId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch site:', error);
+    throw error;
+  }
+};
 
 // 사업소 타임라인/체크리스트 데이터 가져오기
 export const fetchSiteTimelineData = async (siteId) => {
@@ -329,6 +388,120 @@ export const repairSiteTimelineOnServer = async (siteId, timelineTemplateItems) 
   }
 
   return { inserted: payload.length };
+};
+
+export const fetchIncomeStatement = async (siteId) => {
+  if (!hasSupabaseEnv) {
+    throw new Error('Supabase environment variables are missing.');
+  }
+
+  const id = (siteId || '').toString().trim();
+  if (!id) throw new Error('Site id is required.');
+
+  const { data, error } = await supabase
+    .from('income_statements')
+    .select('*, income_statement_items(*)')
+    .eq('site_id', id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Supabase fetchIncomeStatement error:', error);
+    throw error;
+  }
+
+  if (!data) return null;
+
+  return {
+    id: String(data.id),
+    siteId: data.site_id ?? null,
+    expectedAmount: data.expected_amount ?? null,
+    contractAmount: data.contract_amount ?? null,
+    items: Array.isArray(data.income_statement_items)
+      ? data.income_statement_items.map(mapIncomeStatementItemRow)
+      : [],
+  };
+};
+
+export const upsertIncomeStatement = async (siteId, header, items = []) => {
+  if (!hasSupabaseEnv) {
+    throw new Error('Supabase environment variables are missing.');
+  }
+
+  const id = (siteId || '').toString().trim();
+  if (!id) throw new Error('Site id is required.');
+
+  const payload = {
+    site_id: id,
+    expected_amount: header?.expectedAmount ?? null,
+    contract_amount: header?.contractAmount ?? null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: statement, error: upsertError } = await supabase
+    .from('income_statements')
+    .upsert(payload, { onConflict: 'site_id' })
+    .select('id')
+    .single();
+
+  if (upsertError) {
+    console.error('Supabase upsertIncomeStatement error:', upsertError);
+    throw upsertError;
+  }
+
+  const statementId = statement?.id;
+  if (!statementId) {
+    throw new Error('Failed to resolve income statement id.');
+  }
+
+  const { error: deleteError } = await supabase
+    .from('income_statement_items')
+    .delete()
+    .eq('statement_id', statementId);
+
+  if (deleteError) {
+    console.error('Supabase upsertIncomeStatement(delete items) error:', deleteError);
+    throw deleteError;
+  }
+
+  const normalizedItems = Array.isArray(items)
+    ? items
+        .filter((item) => {
+          const hasCore =
+            item?.name ||
+            item?.description ||
+            item?.note ||
+            item?.amount ||
+            item?.paymentType ||
+            item?.spentAt;
+          return Boolean(hasCore);
+        })
+        .map((item, index) => ({
+          statement_id: statementId,
+          type: item?.type ?? 'sales',
+          group_name: item?.groupName ?? null,
+          category: item?.category ?? null,
+          name: item?.name ?? '',
+          amount: item?.amount ?? 0,
+          note: item?.note ?? '',
+          payment_type: item?.paymentType || null,
+          spent_at: item?.spentAt || null, // 빈 문자열은 null로 변환
+          description: item?.description || null,
+          order_index: item?.orderIndex ?? index,
+        }))
+    : [];
+
+  if (normalizedItems.length > 0) {
+    const { error: insertError } = await supabase
+      .from('income_statement_items')
+      .insert(normalizedItems);
+
+    if (insertError) {
+      console.error('Supabase upsertIncomeStatement(insert items) error:', insertError);
+      throw insertError;
+    }
+  }
+
+  return { ok: true, id: statementId };
 };
 
 /**

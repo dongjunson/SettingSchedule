@@ -3,6 +3,7 @@ import { Navigate, Route, BrowserRouter as Router, Routes, useNavigate } from 'r
 import AdminRoute from './components/AdminRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
+import { Toaster } from './components/ui/toaster';
 import AdminInviteUserPage from './pages/AdminInviteUserPage';
 import AdminNewProjectPage from './pages/AdminNewProjectPage';
 import AdminProjectManagePage from './pages/AdminProjectManagePage';
@@ -68,6 +69,7 @@ function App() {
 
   return (
     <Router>
+      <Toaster />
       <InviteHandler>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
