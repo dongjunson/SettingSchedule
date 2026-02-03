@@ -14,12 +14,12 @@ delete from checklist_items;
 delete from timeline_items;
 delete from sites;
 
--- 1) sites
-insert into sites (id, name) values
-  ('anyang-bakdal','안양 박달 사업소'),
-  ('icheon-public-sewer','이천 공공 하수도 사업소'),
-  ('gunpo-sewer','군포 하수도 사업소'),
-  ('suwon','수원 하수도 사업소');
+-- 1) sites (stage: '구축중' = shown on "구축중 프로젝트" list)
+insert into sites (id, name, stage) values
+  ('anyang-bakdal','안양 박달 사업소', '구축중'),
+  ('icheon-public-sewer','이천 공공 하수도 사업소', '구축중'),
+  ('gunpo-sewer','군포 하수도 사업소', '구축중'),
+  ('suwon','수원 하수도 사업소', '구축중');
 
 -- 2) timeline_items
 insert into timeline_items (site_id, step, task, section, subsection, status, role, start_date, completion_date, completed_at, completed_by) values ('anyang-bakdal', '1-01', 'Kick-Off', '구축 및 설치', '사전 준비', 'pending', 'both', null, null, null, null);

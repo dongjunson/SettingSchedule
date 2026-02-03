@@ -48,6 +48,8 @@ const mapChecklistRowToItem = (row) => ({
 const mapSiteRowToSite = (row) => ({
   id: row.id,
   name: row.name,
+  stage: row.stage ?? null,
+  createdAt: row.created_at ?? null,
   timeline: Array.isArray(row.timeline_items) ? row.timeline_items.map(mapTimelineRowToItem) : [],
   checklist: Array.isArray(row.checklist_items)
     ? row.checklist_items.map(mapChecklistRowToItem)
@@ -86,7 +88,8 @@ export const fetchAllSitesData = async () => {
   if (hasSupabaseEnv) {
     const { data, error } = await supabase
       .from('sites')
-      .select('*, timeline_items(*), checklist_items(*)');
+      .select('*, timeline_items(*), checklist_items(*)')
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Supabase fetchAllSitesData error:', error);
@@ -188,8 +191,10 @@ export const createSiteOnServer = async ({ id, name, timelineItems = [], checkli
     throw new Error('Site id and name are required.');
   }
 
-  // 1) Create site
-  const { error: siteError } = await supabase.from('sites').insert({ id: siteId, name: siteName });
+  // 1) Create site (stage = null → not shown on "구축중 프로젝트" list)
+  const { error: siteError } = await supabase
+    .from('sites')
+    .insert({ id: siteId, name: siteName, stage: null });
   if (siteError) {
     console.error('Supabase createSiteOnServer(site) error:', siteError);
     throw siteError;
@@ -260,8 +265,11 @@ export const updateSiteOnServer = async (siteId, updates) => {
   if (!id) throw new Error('Site id is required.');
 
   const payload = {};
-  if ('name' in updates && updates.name) {
+  if ('name' in updates && updates.name != null) {
     payload.name = updates.name.toString().trim();
+  }
+  if ('stage' in updates) {
+    payload.stage = updates.stage == null ? null : String(updates.stage);
   }
 
   if (Object.keys(payload).length === 0) {
@@ -280,7 +288,7 @@ export const updateSiteOnServer = async (siteId, updates) => {
     throw error;
   }
 
-  return { id: data.id, name: data.name };
+  return { id: data.id, name: data.name, stage: data.stage ?? null };
 };
 
 export const repairSiteTimelineOnServer = async (siteId, timelineTemplateItems) => {

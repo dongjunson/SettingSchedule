@@ -31,6 +31,18 @@ export const STATUS_LABELS = {
   [STATUS.COMPLETED]: '완료',
 };
 
+// 프로젝트 단계 (sites.stage)
+export const STAGE = {
+  IN_PROGRESS: '구축중',
+  COMPLETED: '구축완료',
+};
+
+export const STAGE_LABELS = {
+  [STAGE.IN_PROGRESS]: '구축중',
+  [STAGE.COMPLETED]: '구축완료',
+  [null]: '영업중',
+};
+
 // 로컬 스토리지 키
 export const STORAGE_KEYS = {
   SITE_TIMELINE: 'site_timeline_data',

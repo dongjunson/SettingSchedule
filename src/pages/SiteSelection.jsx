@@ -3,19 +3,15 @@ import {
   Building2,
   Check,
   CheckCircle2,
-  LogOut,
   Pencil,
-  Plus,
   Trash2,
   X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import loginLogo from '../assets/images/login-logo.png';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
 import {
   calculateSiteProgress,
   useCreateSite,
@@ -23,6 +19,7 @@ import {
   useSites,
   useUpdateSite,
 } from '../hooks/useQueries';
+import { STAGE } from '../lib/constants';
 import { useUserStore } from '../lib/userStore';
 
 export default function SiteSelection() {
@@ -35,35 +32,19 @@ export default function SiteSelection() {
   // 새로고침 시에도 캐시가 없으면 isLoading이 true가 되지만,
   // refetchOnMount: false 설정으로 staleTime 내에서는 불필요한 refetch 방지
   const loading = isLoading && !sites.length;
-  const { mutateAsync: createSite, isPending: creating } = useCreateSite();
   const { mutateAsync: deleteSite } = useDeleteSite();
   const { mutateAsync: updateSite, isPending: updating } = useUpdateSite();
 
   // 사용자 스토어
-  const logout = useUserStore((state) => state.logout);
   const getId = useUserStore((state) => state.getId);
-  const getGroup = useUserStore((state) => state.getGroup);
 
   const isAdmin = getId() === 'admin';
 
-  const [newSiteName, setNewSiteName] = useState('');
-  const [createError, setCreateError] = useState('');
   const [deletingSiteId, setDeletingSiteId] = useState(null);
 
   // 수정 모드 상태
   const [editingSiteId, setEditingSiteId] = useState(null);
   const [editingName, setEditingName] = useState('');
-
-  const handleCreateSite = async () => {
-    setCreateError('');
-    try {
-      const created = await createSite({ name: newSiteName });
-      setNewSiteName('');
-      navigate(`/site/${created.id}`);
-    } catch (err) {
-      setCreateError(err?.message || '사업소 추가에 실패했습니다.');
-    }
-  };
 
   const handleDeleteSite = async (site) => {
     if (!site?.id) return;
@@ -103,9 +84,10 @@ export default function SiteSelection() {
     }
   };
 
-  // sites와 진행도 계산을 메모이제이션
+  // 구축중 단계 프로젝트만 노출
   const sitesWithProgress = useMemo(() => {
-    const mapped = sites.map((site) => ({
+    const inProgress = sites.filter((s) => s.stage === STAGE.IN_PROGRESS);
+    const mapped = inProgress.map((site) => ({
       ...site,
       progress: calculateSiteProgress(site),
     }));
@@ -123,84 +105,25 @@ export default function SiteSelection() {
   }, [sites]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-4 md:p-8">
-        <div className="mb-8">
-          {/* 헤더 영역 */}
-          <div className="mb-6 pb-6 border-b border-border/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <img src={loginLogo} alt="SAFEROBO PMS" className="h-12" />
+    <div className="mb-8">
+      <h1 className="text-2xl font-bold text-foreground mb-2">구축중 프로젝트</h1>
+      <p className="text-muted-foreground mb-6">
+        현재 구축 중인 프로젝트 목록입니다. 타임라인·체크리스트를 관리할 수 있습니다.
+      </p>
 
-            {/* User Controls */}
-            <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-              <div className="text-right hidden sm:block mr-2">
-                <div className="text-sm font-semibold text-foreground">{getId()}</div>
-                <div className="text-xs text-muted-foreground">{getGroup()}</div>
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full bg-muted/50 hover:bg-muted border-muted-foreground/20 hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      logout();
-                      navigate('/login');
-                    }}
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>로그아웃</TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* Admin Only: 신규 사업소 추가 */}
-          {isAdmin && (
-            <div className="flex flex-col md:flex-row items-center gap-3 p-4 rounded-lg bg-muted/30">
-              <div className="text-sm font-semibold text-muted-foreground whitespace-nowrap">
-                신규 프로젝트
-              </div>
-              <div className="flex-1 w-full flex items-center gap-2">
-                <input
-                  value={newSiteName}
-                  onChange={(e) => setNewSiteName(e.target.value)}
-                  placeholder="프로젝트명 또는 사업소 이름을 입력하세요"
-                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  disabled={creating}
-                  onKeyDown={(e) => e.key === 'Enter' && newSiteName.trim() && handleCreateSite()}
-                />
-                <Button
-                  onClick={handleCreateSite}
-                  disabled={creating || !newSiteName.trim()}
-                  className="shadow-lg shadow-primary/20"
-                >
-                  {creating ? (
-                    '생성 중...'
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">추가하기</span>
-                    </span>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-          {createError && (
-            <div className="mt-3 px-2 text-sm text-destructive flex items-center gap-2">
-              {createError}
-            </div>
-          )}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground animate-pulse">데이터를 불러오는 중입니다...</p>
         </div>
-
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-            <p className="text-muted-foreground animate-pulse">데이터를 불러오는 중입니다...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      ) : sitesWithProgress.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            구축중 프로젝트가 없습니다.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sitesWithProgress.map((site) => {
               const isCompleted = site.progress.overall === 100;
               const cardColor = isCompleted ? '#94a3b8' : '#3b82f6';
@@ -426,9 +349,8 @@ export default function SiteSelection() {
                 </Card>
               );
             })}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

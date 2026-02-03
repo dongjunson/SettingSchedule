@@ -22,6 +22,7 @@
 CREATE TABLE sites (
   id TEXT PRIMARY KEY, -- 사업소 ID (예: 'anyang-bakdal')
   name TEXT NOT NULL, -- 사업소 이름
+  stage TEXT, -- 프로젝트 단계: null=미노출, '구축중'=구축중 프로젝트 목록에 노출
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -129,3 +130,15 @@ VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY_HERE
 왼쪽 사이드바의 **Table Editor**를 클릭하여 `sites`, `timeline_items`, `checklist_items` 테이블이 정상적으로 생성되었는지 확인합니다.
 
 이제 Supabase 설정이 완료되었습니다!
+
+## 5. (기존 DB 사용 시) sites에 stage 컬럼 추가
+
+이미 `sites` 테이블이 있는 경우, SQL Editor에서 아래를 실행하여 `stage` 컬럼을 추가하고 기존 사업소를 구축중으로 표시합니다.
+
+```sql
+-- stage 컬럼 추가 (nullable)
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS stage TEXT;
+
+-- 기존 행은 모두 구축중으로 표시
+UPDATE sites SET stage = '구축중' WHERE stage IS NULL;
+```

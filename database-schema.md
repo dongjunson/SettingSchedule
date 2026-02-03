@@ -9,6 +9,7 @@ Project sites (사업소).
 | :--- | :--- | :--- |
 | `id` | `text` | **Primary Key**. Site identifier (e.g., 'anyang-bakdal') |
 | `name` | `text` | Display name of the site (e.g., '안양 박달 사업소') |
+| `stage` | `text` | Project stage: `null` = hidden from "구축중 프로젝트" list, `'구축중'` = shown there |
 | `created_at` | `timestamptz` | Creation timestamp (default: `now()`) |
 
 ### `timeline_items`
@@ -58,6 +59,7 @@ Pre-issued users for ID/password distribution login.
 CREATE TABLE sites (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  stage TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

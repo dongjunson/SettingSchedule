@@ -90,10 +90,19 @@ export const useSites = () => {
           sites = [];
         }
 
-        return sites.map((site) => ({
+        const withChecklist = sites.map((site) => ({
           ...site,
           checklist: validateAndUpdateChecklist(site.checklist),
         }));
+
+        // 최근 생성 순 정렬 (createdAt 없으면 뒤로)
+        withChecklist.sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tb - ta;
+        });
+
+        return withChecklist;
       } catch (error) {
         console.error('Failed to fetch sites:', error);
         throw error;
@@ -168,6 +177,7 @@ export const useCreateSite = () => {
     },
     onSuccess: (newSite) => {
       queryClient.invalidateQueries({ queryKey: ['sites'] });
+      queryClient.refetchQueries({ queryKey: ['sites'] });
       if (newSite) {
         queryClient.setQueryData(['site', newSite.id], newSite);
       }
