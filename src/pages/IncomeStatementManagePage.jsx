@@ -72,6 +72,39 @@ const formatNumber = (value) => {
   return value.toLocaleString('ko-KR');
 };
 
+// 입력값에 세자리 콤마 적용 (입력 필드용)
+const formatInputNumber = (value) => {
+  if (value == null || value === '') return '';
+  // 숫자와 콤마만 남기고 제거
+  const numericValue = String(value).replace(/[^\d]/g, '');
+  if (numericValue === '') return '';
+  return Number(numericValue).toLocaleString('ko-KR');
+};
+
+// 콤마 포맷 금액 입력 컴포넌트
+const AmountInput = ({ value, onChange, placeholder = '0원', className = '', disabled = false }) => {
+  const displayValue = formatInputNumber(value);
+  
+  const handleChange = (e) => {
+    const inputValue = e.target.value;
+    // 숫자와 콤마만 허용
+    const numericValue = inputValue.replace(/[^\d]/g, '');
+    onChange(numericValue);
+  };
+
+  return (
+    <Input
+      type="text"
+      inputMode="numeric"
+      value={displayValue}
+      onChange={handleChange}
+      placeholder={placeholder}
+      className={className}
+      disabled={disabled}
+    />
+  );
+};
+
 // 0원일 때 placeholder 스타일로 표시하는 컴포넌트
 const AmountDisplay = ({ value, unit = '원', placeholderClass = 'text-muted-foreground/50' }) => {
   if (value === 0) {
@@ -527,12 +560,10 @@ export default function IncomeStatementManagePage() {
                   >
                     가예상금액
                   </label>
-                  <Input
-                    id="expectedAmount"
-                    type="number"
+                  <AmountInput
                     value={header.expectedAmount}
-                    onChange={(e) => handleHeaderChange('expectedAmount', e.target.value)}
-                    placeholder="예: 13000000"
+                    onChange={(value) => handleHeaderChange('expectedAmount', value)}
+                    placeholder="예: 13,000,000"
                     className="h-10"
                   />
                 </div>
@@ -543,12 +574,10 @@ export default function IncomeStatementManagePage() {
                   >
                     계약금액
                   </label>
-                  <Input
-                    id="contractAmount"
-                    type="number"
+                  <AmountInput
                     value={header.contractAmount}
-                    onChange={(e) => handleHeaderChange('contractAmount', e.target.value)}
-                    placeholder="예: 13770000"
+                    onChange={(value) => handleHeaderChange('contractAmount', value)}
+                    placeholder="예: 13,770,000"
                     className="h-10"
                   />
                 </div>
@@ -693,11 +722,10 @@ export default function IncomeStatementManagePage() {
                     onChange={(e) => updateItem(setSalesItems, item.id, { name: e.target.value })}
                     placeholder="항목명"
                   />
-                  <Input
+                  <AmountInput
                     className="col-span-2"
-                    type="number"
                     value={item.amount}
-                    onChange={(e) => updateItem(setSalesItems, item.id, { amount: e.target.value })}
+                    onChange={(value) => updateItem(setSalesItems, item.id, { amount: value })}
                     placeholder="0원"
                   />
                   <div className="col-span-2 flex justify-center">
@@ -779,12 +807,11 @@ export default function IncomeStatementManagePage() {
                               }
                               placeholder="항목명"
                             />
-                            <Input
+                            <AmountInput
                               className="col-span-2"
-                              type="number"
                               value={item.amount}
-                              onChange={(e) =>
-                                updateItem(setExpenseItems, item.id, { amount: e.target.value })
+                              onChange={(value) =>
+                                updateItem(setExpenseItems, item.id, { amount: value })
                               }
                               placeholder="0원"
                             />
@@ -823,7 +850,7 @@ export default function IncomeStatementManagePage() {
                     </div>
                   </div>
                   {/* 우측: 합계 */}
-                  <div className="w-36 shrink-0 border-l bg-muted/50 flex flex-col items-center justify-center p-3 gap-2">
+                  <div className="w-48 shrink-0 border-l bg-muted/50 flex flex-col items-center justify-center p-4 gap-2">
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">합계</p>
                       <p className="text-base font-bold tabular-nums">
@@ -951,12 +978,11 @@ export default function IncomeStatementManagePage() {
                         updateItem(setExpenseItems, item.id, { spentAt: e.target.value })
                       }
                     />
-                    <Input
+                    <AmountInput
                       className="col-span-2"
-                      type="number"
                       value={item.amount}
-                      onChange={(e) =>
-                        updateItem(setExpenseItems, item.id, { amount: e.target.value })
+                      onChange={(value) =>
+                        updateItem(setExpenseItems, item.id, { amount: value })
                       }
                       placeholder="0원"
                     />
