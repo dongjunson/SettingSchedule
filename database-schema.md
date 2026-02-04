@@ -225,6 +225,8 @@ $$;
 ALTER TABLE sites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE timeline_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE income_statements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE income_statement_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies (authenticated only: 로그인 후 Supabase Auth 세션이 있어야 접근 가능)
@@ -234,6 +236,10 @@ CREATE POLICY "Authenticated read write timeline_items"
   ON timeline_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Authenticated read write checklist_items"
   ON checklist_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated read write income_statements"
+  ON income_statements FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated read write income_statement_items"
+  ON income_statement_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- Users table should not be readable from clients; allow only the login RPC.
 CREATE POLICY "Deny all access to app_users" ON app_users FOR ALL USING (false) WITH CHECK (false);
