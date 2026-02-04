@@ -49,7 +49,7 @@ export default function ChecklistPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto p-4 md:p-8">
+      <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
         <div className="mb-6">
           <Button variant="ghost" onClick={() => navigate(`/site/${siteId}`)} className="mb-4">

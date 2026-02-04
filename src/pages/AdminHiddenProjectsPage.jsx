@@ -59,7 +59,7 @@ export default function AdminHiddenProjectsPage() {
               {hiddenSites.map((site) => (
                 <li
                   key={site.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
+                  className="flex flex-row items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex-shrink-0 p-2 rounded-lg bg-muted/50">

@@ -78,9 +78,9 @@ export default function MainLayout() {
         )}
 
         <div className="flex-1 min-w-0">
-          <div className="max-w-7xl mx-auto p-4 md:p-8">
+          <div className="max-w-7xl mx-auto p-8">
             {/* 상단 헤더: 로고 + 메뉴 + 관리자(admin) + 사용자 */}
-            <div className="mb-6 pb-6 border-b border-border/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="mb-6 pb-6 border-b border-border/40 flex flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-8">
                 <NavLink to="/" className="flex-shrink-0">
                   <img src={loginLogo} alt="SAFEROBO PMS" className="h-12" />
@@ -111,7 +111,7 @@ export default function MainLayout() {
                         onClick={() => setAdminSidebarOpen((v) => !v)}
                       >
                         <Settings className="h-5 w-5" />
-                        <span className="hidden sm:inline">관리자 메뉴</span>
+                        <span>관리자 메뉴</span>
                         {adminSidebarOpen ? (
                           <ChevronLeft className="h-4 w-4" />
                         ) : (
@@ -126,8 +126,8 @@ export default function MainLayout() {
                 )}
               </div>
 
-              <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                <div className="text-right hidden sm:block mr-2">
+              <div className="flex items-center gap-4 w-auto justify-end">
+                <div className="text-right block mr-2">
                   <div className="text-sm font-semibold text-foreground">{getId()}</div>
                   <div className="text-xs text-muted-foreground">{getGroup()}</div>
                 </div>

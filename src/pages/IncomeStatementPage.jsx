@@ -53,14 +53,14 @@ export default function IncomeStatementPage() {
       ) : (
         <>
           <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-              <TabsList className="w-full sm:w-auto shrink-0">
+            <div className="flex flex-row items-center gap-4 mb-4">
+              <TabsList className="w-auto shrink-0">
                 <TabsTrigger value={TAB_ALL}>전체</TabsTrigger>
                 <TabsTrigger value={TAB_HIDDEN}>영업중</TabsTrigger>
                 <TabsTrigger value={TAB_IN_PROGRESS}>구축중</TabsTrigger>
                 <TabsTrigger value={TAB_COMPLETED}>구축완료</TabsTrigger>
               </TabsList>
-              <div className="relative flex-1 w-full sm:max-w-xs">
+              <div className="relative flex-1 w-full max-w-xs">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="사업소명 검색"

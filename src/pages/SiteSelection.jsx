@@ -121,7 +121,7 @@ export default function SiteSelection() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-6">
             {sitesWithProgress.map((site) => {
               const isCompleted = site.progress.overall === 100;
               const cardColor = isCompleted ? '#94a3b8' : '#3b82f6';

@@ -34,7 +34,7 @@ export default function AdminNewProjectPage() {
       </p>
 
       <div className="max-w-xl space-y-4 p-6 rounded-lg border border-border/60 bg-card">
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-row gap-3">
           <input
             value={newSiteName}
             onChange={(e) => setNewSiteName(e.target.value)}

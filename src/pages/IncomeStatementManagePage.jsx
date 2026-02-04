@@ -550,9 +550,9 @@ export default function IncomeStatementManagePage() {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50 shadow-sm pb-4 -mb-4">
         <div className="relative">
           <Card className="border-border/60 shadow-none">
-            <CardContent className="p-4 md:p-5 space-y-5">
+            <CardContent className="p-5 space-y-5">
               {/* 상단 입력 */}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 grid-cols-2">
                 <div className="space-y-2">
                   <label
                     htmlFor="expectedAmount"

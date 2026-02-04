@@ -180,59 +180,11 @@ export default function TimelinePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-4 md:p-8">
+      <div className="max-w-7xl mx-auto p-8">
         {/* Header - 고정 높이로 일관성 유지 */}
         <div className="mb-6">
-          {/* Mobile: 점검 리스트 버튼을 상단에 배치 */}
-          <div className="flex items-center justify-between mb-4 md:hidden h-16">
-            <Button variant="ghost" onClick={() => navigate('/')} className="flex-shrink-0">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">프로젝트 목록으로</span>
-            </Button>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => navigate(`/site/${siteId}/checklist`)}
-                className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
-              >
-                <ListChecks className="mr-2 h-4 w-4" />
-                점검 리스트
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => exportTimelineToExcel(site)}
-                size="icon"
-                title="엑셀로 출력"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-              </Button>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      logout();
-                      navigate('/login');
-                    }}
-                    size="icon"
-                    className="rounded-full bg-muted/50 hover:bg-muted border-muted-foreground/20 hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground"
-                    data-tooltip-trigger
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" align="end">
-                  <div className="space-y-1">
-                    <div className="font-semibold">{getId()}</div>
-                    <div className="text-xs text-muted-foreground">그룹: {getGroup()}</div>
-                    <div className="text-xs text-muted-foreground">클릭하여 로그아웃</div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* Desktop: 기존 레이아웃 */}
-          <div className="hidden md:flex items-center justify-between mb-4 h-16">
+          {/* 상단 헤더 */}
+          <div className="flex items-center justify-between mb-4 h-16">
             <Button variant="ghost" onClick={() => navigate('/')}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               프로젝트 목록으로
@@ -275,17 +227,17 @@ export default function TimelinePage() {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div className="flex flex-row items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center gap-3">
                 <span className="w-1 h-8 bg-primary rounded-full" />
                 {site.name} 프로젝트 타임라인
               </h1>
-              <p className="text-muted-foreground ml-4 text-sm sm:text-base">
+              <p className="text-muted-foreground ml-4 text-base">
                 타임라인 항목을 클릭하여 상태를 변경할 수 있습니다
               </p>
             </div>
-            <div className="hidden md:flex items-center gap-2 mt-4 md:mt-0">
+            <div className="flex items-center gap-2">
               <Button
                 onClick={() => navigate(`/site/${siteId}/checklist`)}
                 className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
@@ -301,7 +253,7 @@ export default function TimelinePage() {
           </div>
 
           {/* Progress Cards with Pie Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-4 mb-6">
             <Card className="border border-border/60 hover:border-primary/50 transition-all bg-card shadow-lg hover:shadow-xl hover:shadow-primary/20">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -687,7 +639,7 @@ export default function TimelinePage() {
               <div key={section} className="space-y-6">
                 {/* Section Header */}
                 <div className="mb-16">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex flex-row items-center justify-between gap-3">
                     <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold shadow-md shadow-primary/20 border-2 border-primary/30">
                         {sectionIndex + 1}
@@ -750,13 +702,13 @@ export default function TimelinePage() {
                           <button
                             type="button"
                             onClick={() => toggleSubsection(sectionIndex, subIndex)}
-                            className="w-full px-4 py-4 lg:px-6 lg:py-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                            className="w-full px-6 py-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-accent/20 to-accent/10 text-accent text-sm font-bold shadow-sm border border-accent/30">
                                 {sectionIndex + 1}-{subIndex + 1}
                               </div>
-                              <h3 className="text-base lg:text-lg font-semibold text-foreground/90">
+                              <h3 className="text-lg font-semibold text-foreground/90">
                                 {subsection}
                               </h3>
                               <span className="text-sm text-muted-foreground">
@@ -770,8 +722,8 @@ export default function TimelinePage() {
                             </div>
                             <div className="flex items-center gap-2">
                               {/* 진행률 바 */}
-                              <div className="hidden sm:flex items-center gap-2">
-                                <div className="w-20 lg:w-32 h-2 bg-muted rounded-full overflow-hidden">
+                              <div className="flex items-center gap-2">
+                                <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
                                   <div
                                     className="h-full bg-primary rounded-full transition-all duration-300"
                                     style={{ width: `${(completedCount / totalCount) * 100}%` }}
@@ -791,17 +743,9 @@ export default function TimelinePage() {
 
                           {/* Subsection Content - 아코디언 본문 */}
                           {isExpanded && (
-                            <div className="px-4 pb-6 pt-4 lg:px-6 lg:pb-8 lg:pt-6 border-t border-border/30 bg-background/50">
-                              {/* Mobile/Tablet: Vertical Timeline */}
-                              <div className="lg:hidden space-y-8 pl-8 relative">
-                                {/* Vertical Timeline Line - Mobile only - positioned left of center */}
-                                <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent" />
-
-                                {subsectionItems.map((item) => renderMobileItem(item))}
-                              </div>
-
-                              {/* Desktop: Horizontal Timeline Rows (lg and above) */}
-                              <div className="hidden lg:block space-y-16 pt-8">
+                            <div className="px-6 pb-8 pt-6 border-t border-border/30 bg-background/50">
+                              {/* Desktop: Horizontal Timeline Rows */}
+                              <div className="block space-y-16 pt-8">
                                 {renderDesktopRows(subsectionItems)}
                               </div>
                             </div>
@@ -813,16 +757,8 @@ export default function TimelinePage() {
                 ) : (
                   /* 중분류가 없는 경우 (대시보드 필드 테스트, 준공 및 문서) */
                   <>
-                    {/* Mobile/Tablet: Vertical Timeline */}
-                    <div className="lg:hidden space-y-8 pl-8 relative">
-                      {/* Vertical Timeline Line - Mobile only - positioned left of center */}
-                      <div className="absolute left-[38px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary via-primary/90 to-transparent" />
-
-                      {sectionItems.map((item) => renderMobileItem(item))}
-                    </div>
-
-                    {/* Desktop: Horizontal Timeline Rows (lg and above) */}
-                    <div className="hidden lg:block space-y-16">
+                    {/* Desktop: Horizontal Timeline Rows */}
+                    <div className="block space-y-16">
                       {renderDesktopRows(sectionItems)}
                     </div>
                   </>
