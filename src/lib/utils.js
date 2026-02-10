@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { ROLE, STATUS, STATUS_ORDER } from './constants';
+import { STATUS, STATUS_ORDER } from './constants';
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -30,15 +30,6 @@ export const formatDateShort = (dateString) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${month}.${day}`;
-};
-
-// role 값 정규화 (공백 제거, 소문자 변환, 유효성 검증)
-export const normalizeRole = (role) => {
-  const normalized = (role || ROLE.BOTH).toString().trim().toLowerCase();
-  if (normalized !== ROLE.RND && normalized !== ROLE.FIELD && normalized !== ROLE.BOTH) {
-    return ROLE.BOTH;
-  }
-  return normalized;
 };
 
 // 상태에 따른 스타일 클래스 반환

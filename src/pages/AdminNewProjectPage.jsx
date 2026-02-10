@@ -13,9 +13,9 @@ export default function AdminNewProjectPage() {
   const handleCreateSite = async () => {
     setCreateError('');
     try {
-      const created = await createSite({ name: newSiteName });
+      await createSite({ name: newSiteName });
       setNewSiteName('');
-      navigate(`/site/${created.id}`);
+      navigate('/admin/projects');
     } catch (err) {
       setCreateError(err?.message || '사업소 추가에 실패했습니다.');
     }

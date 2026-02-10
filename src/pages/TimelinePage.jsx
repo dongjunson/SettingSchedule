@@ -36,7 +36,6 @@ import {
   formatDateShort,
   getNextStatus,
   getStatusColor,
-  normalizeRole,
   parseStepForSort,
 } from '../lib/utils';
 
@@ -89,9 +88,9 @@ export default function TimelinePage() {
     const nextStatus = getNextStatus(currentStatus);
     const updates = {
       status: nextStatus,
-      // completed 상태로 변경될 때만 completedAt과 completedBy 저장 (그룹 정보 저장)
+      // completed 상태로 변경될 때만 completedAt과 completedBy 저장 (완료한 사용자 아이디)
       completedAt: nextStatus === 'completed' ? new Date().toISOString() : null,
-      completedBy: nextStatus === 'completed' ? getGroup() || null : null,
+      completedBy: nextStatus === 'completed' ? getId() || null : null,
     };
     try {
       await updateTimelineItem({ siteId, itemId, updates });
@@ -342,14 +341,6 @@ export default function TimelinePage() {
 
             // 아이템 렌더링 함수 (모바일용)
             const renderMobileItem = (item) => {
-              // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
-              let role = (item.role || 'both').toString().trim().toLowerCase();
-              // 유효하지 않은 role 값은 'both'로 설정
-              if (role !== 'rnd' && role !== 'field' && role !== 'both') {
-                console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item);
-                role = 'both';
-              }
-
               // status 기반으로 상태 판단 (단순화)
               const currentStatus = item.status || 'pending';
               const isCompleted = currentStatus === 'completed';
@@ -402,20 +393,6 @@ export default function TimelinePage() {
                           >
                             {item.task}
                           </h3>
-                        </div>
-
-                        {/* 중단: Role 뱃지 (우측 정렬) */}
-                        <div className="flex justify-end gap-2 py-1">
-                          {(role === 'rnd' || role === 'both') && (
-                            <div className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-semibold shadow-sm">
-                              R&D
-                            </div>
-                          )}
-                          {(role === 'field' || role === 'both') && (
-                            <div className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold shadow-sm">
-                              사업지원팀
-                            </div>
-                          )}
                         </div>
 
                         {/* 하단: 날짜 표시 */}
@@ -477,14 +454,6 @@ export default function TimelinePage() {
 
             // 아이템 렌더링 함수 (데스크톱용)
             const renderDesktopItem = (item) => {
-              // role 값 정규화 및 검증 (공백 제거, 소문자 변환)
-              let role = (item.role || 'both').toString().trim().toLowerCase();
-              // 유효하지 않은 role 값은 'both'로 설정
-              if (role !== 'rnd' && role !== 'field' && role !== 'both') {
-                console.warn(`Invalid role value: ${item.role}, defaulting to 'both'`, item);
-                role = 'both';
-              }
-
               // status 기반으로 상태 판단 (단순화)
               const currentStatus = item.status || 'pending';
               const isCompleted = currentStatus === 'completed';
@@ -537,20 +506,6 @@ export default function TimelinePage() {
                           >
                             {item.task}
                           </h3>
-                        </div>
-
-                        {/* 중단: Role 뱃지 (우측 정렬) */}
-                        <div className="flex justify-end gap-2 py-1">
-                          {(role === 'rnd' || role === 'both') && (
-                            <div className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-semibold shadow-sm">
-                              R&D
-                            </div>
-                          )}
-                          {(role === 'field' || role === 'both') && (
-                            <div className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold shadow-sm">
-                              사업지원팀
-                            </div>
-                          )}
                         </div>
 
                         {/* 하단: 날짜 표시 */}

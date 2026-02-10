@@ -20,7 +20,6 @@ const mapTimelineRowToItem = (row) => ({
   section: row.section ?? '',
   subsection: row.subsection ?? null,
   status: row.status ?? STATUS.PENDING,
-  role: row.role ?? 'both',
   // Supabase schema uses snake_case; UI uses camelCase
   startDate: row.start_date ?? null,
   completionDate: row.completion_date ?? null,
@@ -260,7 +259,6 @@ export const createSiteOnServer = async ({ id, name, timelineItems = [], checkli
       section: item.section ?? '',
       subsection: item.subsection ?? null,
       status: item.status ?? STATUS.PENDING,
-      role: item.role ?? 'both',
       start_date: item.startDate ?? null,
       completion_date: item.completionDate ?? null,
       completed_at: item.completedAt ?? null,
@@ -374,7 +372,6 @@ export const repairSiteTimelineOnServer = async (siteId, timelineTemplateItems) 
     section: item.section ?? '',
     subsection: item.subsection ?? null,
     status: item.status ?? STATUS.PENDING,
-    role: item.role ?? 'both',
     start_date: item.startDate ?? null,
     completion_date: item.completionDate ?? null,
     completed_at: item.completedAt ?? null,

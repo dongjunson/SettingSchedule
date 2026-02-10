@@ -1,12 +1,11 @@
 import { Check, Clock, User, X } from 'lucide-react';
 import { DateRangePicker } from './DateRangePicker';
 import { Card, CardContent } from './ui/card';
-import { ROLE, STATUS, STATUS_LABELS } from '../lib/constants';
+import { STATUS, STATUS_LABELS } from '../lib/constants';
 import {
   cn,
   formatCompletedTime,
   getStatusColor,
-  normalizeRole,
 } from '../lib/utils';
 
 // 상태 아이콘 반환
@@ -35,7 +34,6 @@ export function TimelineItem({
   onDateChange,
   variant = 'desktop',
 }) {
-  const role = normalizeRole(item.role);
   const currentStatus = item.status || STATUS.PENDING;
   const isCompleted = currentStatus === STATUS.COMPLETED;
   const isWorking = currentStatus === STATUS.WORKING;
@@ -57,20 +55,6 @@ export function TimelineItem({
         >
           {item.task}
         </h3>
-      </div>
-
-      {/* 중단: Role 뱃지 */}
-      <div className="flex justify-end gap-2 py-1">
-        {(role === ROLE.RND || role === ROLE.BOTH) && (
-          <div className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
-            R&D
-          </div>
-        )}
-        {(role === ROLE.FIELD || role === ROLE.BOTH) && (
-          <div className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">
-            사업지원팀
-          </div>
-        )}
       </div>
 
       {/* 하단: 날짜 표시 */}

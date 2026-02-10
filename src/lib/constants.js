@@ -10,20 +10,6 @@ export const STATUS = {
 // 상태 순환 순서 (pending -> working -> completed -> pending)
 export const STATUS_ORDER = [STATUS.PENDING, STATUS.WORKING, STATUS.COMPLETED];
 
-// 담당 역할
-export const ROLE = {
-  RND: 'rnd',
-  FIELD: 'field',
-  BOTH: 'both',
-};
-
-// 역할 표시 라벨
-export const ROLE_LABELS = {
-  [ROLE.RND]: 'R&D',
-  [ROLE.FIELD]: '사업지원팀',
-  [ROLE.BOTH]: '공동',
-};
-
 // 상태 표시 라벨
 export const STATUS_LABELS = {
   [STATUS.PENDING]: '대기',

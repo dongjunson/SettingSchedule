@@ -1,7 +1,7 @@
 // 신규 사업소 생성 시 사용할 초기 데이터 템플릿을 한 곳에서 관리합니다.
 // - store.js의 하드코딩을 줄이고, 향후 템플릿 변경을 이 파일에서만 하도록 분리
 
-import { ROLE, STATUS } from './constants';
+import { STATUS } from './constants';
 
 // 타임라인 기본 템플릿 (초기화 상태)
 // - status: pending
@@ -15,7 +15,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '사전 준비',
     status: 'pending',
-    role: 'both',
   },
   {
     step: '1-02',
@@ -23,7 +22,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '사전 준비',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-03',
@@ -31,7 +29,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '사전 준비',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-04',
@@ -39,7 +36,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '사전 준비',
     status: 'pending',
-    role: 'rnd',
   },
   {
     step: '1-05',
@@ -47,7 +43,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '사전 준비',
     status: 'pending',
-    role: 'field',
   },
   // 1-2. 인프라 구축
   {
@@ -56,7 +51,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-07',
@@ -64,7 +58,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-08',
@@ -72,7 +65,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-09',
@@ -80,7 +72,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-10',
@@ -88,7 +79,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-11',
@@ -96,7 +86,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-12',
@@ -104,7 +93,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-13',
@@ -112,7 +100,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-14',
@@ -120,7 +107,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-15',
@@ -128,7 +114,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '인프라 구축',
     status: 'pending',
-    role: 'field',
   },
   // 1-3. 가스검침기 설치
   {
@@ -137,7 +122,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '가스검침기 설치',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-17',
@@ -145,7 +129,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '가스검침기 설치',
     status: 'pending',
-    role: 'field',
   },
   // 1-4. 운영서버 설치
   {
@@ -154,7 +137,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설치',
     status: 'pending',
-    role: 'rnd',
   },
   {
     step: '1-19',
@@ -162,7 +144,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설치',
     status: 'pending',
-    role: 'rnd',
   },
   {
     step: '1-20',
@@ -170,7 +151,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설치',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-21',
@@ -178,7 +158,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설치',
     status: 'pending',
-    role: 'field',
   },
   // 1-5. 운영서버 설정
   {
@@ -187,7 +166,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-23',
@@ -195,7 +173,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-24',
@@ -203,7 +180,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-25',
@@ -211,7 +187,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'rnd',
   },
   {
     step: '1-26',
@@ -219,7 +194,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-27',
@@ -227,7 +201,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-28',
@@ -235,7 +208,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-29',
@@ -243,7 +215,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-30',
@@ -251,7 +222,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 설정',
     status: 'pending',
-    role: 'field',
   },
   // 1-6. 운영서버 데이터 등록
   {
@@ -260,7 +230,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'rnd',
   },
   {
     step: '1-32',
@@ -268,7 +237,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-33',
@@ -276,7 +244,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-34',
@@ -284,7 +251,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-35',
@@ -292,7 +258,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-36',
@@ -300,7 +265,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-37',
@@ -308,7 +272,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-38',
@@ -316,7 +279,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-39',
@@ -324,7 +286,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-40',
@@ -332,7 +293,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-41',
@@ -340,7 +300,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-42',
@@ -348,7 +307,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-43',
@@ -356,7 +314,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '운영서버 데이터 등록',
     status: 'pending',
-    role: 'rnd',
   },
   // 1-7. 현장 설치
   {
@@ -365,7 +322,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '현장 설치',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-45',
@@ -373,7 +329,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '현장 설치',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-46',
@@ -381,7 +336,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '현장 설치',
     status: 'pending',
-    role: 'field',
   },
   {
     step: '1-47',
@@ -389,7 +343,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '구축 및 설치',
     subsection: '현장 설치',
     status: 'pending',
-    role: 'field',
   },
 
   // 2. 대시보드 필드 테스트
@@ -399,7 +352,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-02',
@@ -407,7 +359,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-03',
@@ -415,7 +366,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-04',
@@ -423,7 +373,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-05',
@@ -431,7 +380,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-06',
@@ -439,7 +387,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-07',
@@ -447,7 +394,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-08',
@@ -455,7 +401,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-09',
@@ -463,7 +408,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-10',
@@ -471,7 +415,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-11',
@@ -479,7 +422,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-12',
@@ -487,7 +429,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '2-13',
@@ -495,7 +436,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '대시보드 필드 테스트',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
 
   // 3. 준공 및 문서
@@ -505,7 +445,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '준공 및 문서',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
   {
     step: '3-02',
@@ -513,7 +452,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '준공 및 문서',
     subsection: null,
     status: 'pending',
-    role: 'field',
   },
   {
     step: '3-03',
@@ -521,7 +459,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '준공 및 문서',
     subsection: null,
     status: 'pending',
-    role: 'field',
   },
   {
     step: '3-04',
@@ -529,7 +466,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '준공 및 문서',
     subsection: null,
     status: 'pending',
-    role: 'field',
   },
   {
     step: '3-05',
@@ -537,7 +473,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '준공 및 문서',
     subsection: null,
     status: 'pending',
-    role: 'field',
   },
   {
     step: '3-06',
@@ -545,7 +480,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '준공 및 문서',
     subsection: null,
     status: 'pending',
-    role: 'field',
   },
   {
     step: '3-07',
@@ -553,7 +487,6 @@ export const getNewSiteTimelineTemplate = () => [
     section: '준공 및 문서',
     subsection: null,
     status: 'pending',
-    role: 'both',
   },
 ];
 
