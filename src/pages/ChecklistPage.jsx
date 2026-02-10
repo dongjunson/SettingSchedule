@@ -1,12 +1,13 @@
 import { ArrowLeft, Check, FileSpreadsheet } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ErrorPage, LoadingSpinner } from '../components/common';
 import { ProgressPieChart } from '../components/ProgressChart';
+import { ErrorPage, LoadingSpinner } from '../components/common';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Checkbox } from '../components/ui/checkbox';
-import { exportChecklistToExcel } from '../lib/exportExcel';
+import { toast } from '../hooks/use-toast';
 import { calculateSiteProgress, useSite, useUpdateChecklistItem } from '../hooks/useQueries';
+import { exportChecklistToExcel } from '../lib/exportExcel';
 import { cn } from '../lib/utils';
 
 export default function ChecklistPage() {
@@ -22,12 +23,18 @@ export default function ChecklistPage() {
       await updateChecklistItem({ siteId, itemId, checked });
     } catch (err) {
       console.error('Failed to update checklist item:', err);
-      window.alert('체크리스트 업데이트에 실패했습니다.');
+      toast({
+        variant: 'destructive',
+        title: '업데이트 실패',
+        description: '체크리스트 업데이트에 실패했습니다.',
+      });
     }
   };
 
   // 진행도 계산 (site가 변경될 때마다 자동으로 계산)
-  const progress = site ? calculateSiteProgress(site) : { timeline: 0, checklist: 0, overall: 0, working: 0, completed: 0, total: 0 };
+  const progress = site
+    ? calculateSiteProgress(site)
+    : { timeline: 0, checklist: 0, overall: 0, working: 0, completed: 0, total: 0 };
 
   if (loading) {
     return <LoadingSpinner message="데이터를 불러오는 중입니다..." />;

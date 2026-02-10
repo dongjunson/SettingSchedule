@@ -1,9 +1,21 @@
-import { ArrowLeft, Building2, EyeOff, Loader2, CheckCircle, Trash2, Pencil, Check, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Building2,
+  Check,
+  CheckCircle,
+  EyeOff,
+  Loader2,
+  Pencil,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LoadingSpinner } from '../components/common';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
+import { toast } from '../hooks/use-toast';
 import { useDeleteSite, useSites, useUpdateSite } from '../hooks/useQueries';
 import { STAGE } from '../lib/constants';
 
@@ -55,13 +67,13 @@ function StageSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{title} ({sites.length}건)</CardTitle>
+        <CardTitle className="text-base">
+          {title} ({sites.length}건)
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {sites.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4">
-            해당 단계의 프로젝트가 없습니다.
-          </p>
+          <p className="text-sm text-muted-foreground py-4">해당 단계의 프로젝트가 없습니다.</p>
         ) : (
           <ul className="divide-y divide-border">
             {sites.map((site) => (
@@ -203,7 +215,9 @@ export default function AdminProjectManagePage() {
   const [editingName, setEditingName] = useState('');
   const [savingNameSiteId, setSavingNameSiteId] = useState(null);
 
-  const hiddenSites = sites.filter((s) => s.stage !== STAGE.IN_PROGRESS && s.stage !== STAGE.COMPLETED);
+  const hiddenSites = sites.filter(
+    (s) => s.stage !== STAGE.IN_PROGRESS && s.stage !== STAGE.COMPLETED
+  );
   const inProgressSites = sites.filter((s) => s.stage === STAGE.IN_PROGRESS);
   const completedSites = sites.filter((s) => s.stage === STAGE.COMPLETED);
 
@@ -213,7 +227,11 @@ export default function AdminProjectManagePage() {
     try {
       await updateSite({ siteId: site.id, updates: { stage } });
     } catch (err) {
-      window.alert(err?.message || '단계 변경에 실패했습니다.');
+      toast({
+        variant: 'destructive',
+        title: '변경 실패',
+        description: err?.message || '단계 변경에 실패했습니다.',
+      });
     } finally {
       setUpdatingSiteId(null);
     }
@@ -229,7 +247,11 @@ export default function AdminProjectManagePage() {
     try {
       await deleteSite(site.id);
     } catch (err) {
-      window.alert(err?.message || '사업소 삭제에 실패했습니다.');
+      toast({
+        variant: 'destructive',
+        title: '삭제 실패',
+        description: err?.message || '사업소 삭제에 실패했습니다.',
+      });
     } finally {
       setDeletingSiteId(null);
     }
@@ -248,7 +270,11 @@ export default function AdminProjectManagePage() {
   const handleSaveEdit = async (site) => {
     const trimmedName = editingName.trim();
     if (!trimmedName) {
-      window.alert('프로젝트 이름을 입력해주세요.');
+      toast({
+        variant: 'destructive',
+        title: '입력 오류',
+        description: '프로젝트 이름을 입력해주세요.',
+      });
       return;
     }
     if (trimmedName === site.name) {
@@ -260,7 +286,11 @@ export default function AdminProjectManagePage() {
       await updateSite({ siteId: site.id, updates: { name: trimmedName } });
       handleCancelEdit();
     } catch (err) {
-      window.alert(err?.message || '이름 변경에 실패했습니다.');
+      toast({
+        variant: 'destructive',
+        title: '변경 실패',
+        description: err?.message || '이름 변경에 실패했습니다.',
+      });
     } finally {
       setSavingNameSiteId(null);
     }
@@ -279,10 +309,7 @@ export default function AdminProjectManagePage() {
       </p>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground animate-pulse">데이터를 불러오는 중입니다...</p>
-        </div>
+        <LoadingSpinner message="데이터를 불러오는 중입니다..." fullScreen={false} />
       ) : (
         <div className="space-y-6">
           <StageSection

@@ -5,6 +5,7 @@ import { ProgressPieChart } from '../components/ProgressChart';
 import { LoadingSpinner } from '../components/common';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { toast } from '../hooks/use-toast';
 import {
   calculateSiteProgress,
   useCreateSite,
@@ -49,7 +50,11 @@ export default function SiteSelection() {
     try {
       await deleteSite(site.id);
     } catch (err) {
-      window.alert(err?.message || '사업소 삭제에 실패했습니다.');
+      toast({
+        variant: 'destructive',
+        title: '삭제 실패',
+        description: err?.message || '사업소 삭제에 실패했습니다.',
+      });
     } finally {
       setDeletingSiteId(null);
     }
@@ -72,7 +77,11 @@ export default function SiteSelection() {
       setEditingSiteId(null);
       setEditingName('');
     } catch (err) {
-      window.alert(err?.message || '사업소명 수정에 실패했습니다.');
+      toast({
+        variant: 'destructive',
+        title: '수정 실패',
+        description: err?.message || '사업소명 수정에 실패했습니다.',
+      });
     }
   };
 

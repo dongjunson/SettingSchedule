@@ -13,255 +13,65 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorPage, LoadingSpinner } from '../components/common';
+import { AmountDisplay, AmountInput } from '../components/income/AmountInput';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { toast } from '../hooks/use-toast';
-import { fetchIncomeStatement, fetchSiteById, upsertIncomeStatement } from '../lib/api';
+import { useIncomeStatement, useUpsertIncomeStatement } from '../hooks/useQueries';
 import { exportIncomeStatementToExcel } from '../lib/exportExcel';
-
-const DEFAULT_SALES_ITEMS = ['선금', '잔금'];
-const PAYMENT_TYPES = [
-  '카드',
-  '현금',
-  '배달의민족',
-  '쿠팡이츠',
-  '요기요',
-  '제로페이',
-  '기타',
-  '직접입력',
-];
-const CUSTOM_PAYMENT_TYPE = '직접입력';
-
-const VARIABLE_EXPENSE_TEMPLATE = {
-  수수료: ['실행이행보증보험료', '하자보증보험료', '조달청 시험'],
-  이동통신료: ['중계기 LORA USIM', '태블릿 USIM', '모니터링시스템 USIM'],
-  'H/W': [
-    'Lora 중계기',
-    'Lora 중계기 인프라비용',
-    'VPN 서버',
-    '스마트 워치',
-    '스마트 비콘',
-    '이동형 가스검측기',
-    '고정형 가스검측기',
-    '현장모니터링(태블릿)',
-    '운영서버',
-    '모니터링 시스템',
-    '안전모,위치 거치대',
-    '잡자재',
-  ],
-  'S/W': ['운영서버 S/W', '네트워크 S/W'],
-  판관비: ['판관비'],
-  영업비용: ['법률법인', '영업 활동비', '접대비'],
-  인건비: ['현장투입인력 m/m'],
-};
-
-const createRowId = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return `row_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-};
-
-const toNumber = (value) => {
-  if (value == null || value === '') return 0;
-  const n = Number(String(value).replace(/,/g, ''));
-  return Number.isNaN(n) ? 0 : n;
-};
-
-const formatNumber = (value) => {
-  if (value == null || Number.isNaN(value)) return '-';
-  return value.toLocaleString('ko-KR');
-};
-
-// 입력값에 세자리 콤마 적용 (입력 필드용)
-const formatInputNumber = (value) => {
-  if (value == null || value === '') return '';
-  // 숫자와 콤마만 남기고 제거
-  const numericValue = String(value).replace(/[^\d]/g, '');
-  if (numericValue === '') return '';
-  return Number(numericValue).toLocaleString('ko-KR');
-};
-
-// 콤마 포맷 금액 입력 컴포넌트
-const AmountInput = ({ value, onChange, placeholder = '0원', className = '', disabled = false }) => {
-  const displayValue = formatInputNumber(value);
-  
-  const handleChange = (e) => {
-    const inputValue = e.target.value;
-    // 숫자와 콤마만 허용
-    const numericValue = inputValue.replace(/[^\d]/g, '');
-    onChange(numericValue);
-  };
-
-  return (
-    <Input
-      type="text"
-      inputMode="numeric"
-      value={displayValue}
-      onChange={handleChange}
-      placeholder={placeholder}
-      className={className}
-      disabled={disabled}
-    />
-  );
-};
-
-// 0원일 때 placeholder 스타일로 표시하는 컴포넌트
-const AmountDisplay = ({ value, unit = '원', placeholderClass = 'text-muted-foreground/50' }) => {
-  if (value === 0) {
-    return <span className={placeholderClass}>0{unit}</span>;
-  }
-  return (
-    <>
-      {formatNumber(value)}
-      {unit}
-    </>
-  );
-};
-
-const formatPercent = (value) => `${value.toFixed(2)}%`;
-
-const buildDefaultSalesItems = () =>
-  DEFAULT_SALES_ITEMS.map((name, index) => ({
-    id: createRowId(),
-    type: 'sales',
-    groupName: null,
-    category: null,
-    name,
-    amount: '',
-    note: '',
-    orderIndex: index,
-  }));
-
-const buildDefaultExpenseItems = () => {
-  const items = [];
-  let order = 0;
-  for (const [category, names] of Object.entries(VARIABLE_EXPENSE_TEMPLATE)) {
-    for (const name of names) {
-      items.push({
-        id: createRowId(),
-        type: 'expense',
-        groupName: 'variable',
-        category,
-        name,
-        amount: '',
-        note: '',
-        orderIndex: order,
-      });
-      order += 1;
-    }
-  }
-  return items;
-};
+import {
+  CUSTOM_PAYMENT_TYPE,
+  PAYMENT_TYPES,
+  VARIABLE_EXPENSE_TEMPLATE,
+} from '../lib/incomeConstants';
+import { createRowId, formatNumber, formatPercent, ratio, toNumber } from '../lib/numberUtils';
 
 export default function IncomeStatementManagePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const siteId = searchParams.get('siteId');
 
-  const [loading, setLoading] = useState(true);
+  // React Query로 데이터 로딩
+  const { data: incomeData, isLoading: loading, error: loadError } = useIncomeStatement(siteId);
+  const { mutateAsync: upsertMutate } = useUpsertIncomeStatement();
+
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(''); // 로딩 에러 (페이지 전환)
   const [lastSavedAt, setLastSavedAt] = useState(null);
-  const [siteName, setSiteName] = useState('');
   const [header, setHeader] = useState({ expectedAmount: '', contractAmount: '' });
   const [salesItems, setSalesItems] = useState([]);
   const [expenseItems, setExpenseItems] = useState([]);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  // 스크롤 감지: 일정 이상 스크롤되면 둥근 버튼 표시
+  // 서버 데이터가 로드되면 로컬 상태에 반영 (최초 1회)
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 80);
-    };
+    if (incomeData && !initialized) {
+      setHeader(incomeData.header);
+      setSalesItems(incomeData.salesItems);
+      setExpenseItems(incomeData.expenseItems);
+      setInitialized(true);
+    }
+  }, [incomeData, initialized]);
+
+  // 스크롤 감지
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 80);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      if (!siteId) {
-        setError('사업소 정보가 없습니다.');
-        setLoading(false);
-        return;
-      }
-      try {
-        // 사업소 정보와 손익계산서 데이터를 병렬로 가져오기
-        const [siteData, incomeData] = await Promise.all([
-          fetchSiteById(siteId),
-          fetchIncomeStatement(siteId),
-        ]);
-
-        if (!mounted) return;
-
-        // 사업소명 설정
-        setSiteName(siteData?.name ?? siteId);
-
-        if (!incomeData) {
-          setHeader({ expectedAmount: '', contractAmount: '' });
-          setSalesItems(buildDefaultSalesItems());
-          setExpenseItems(buildDefaultExpenseItems());
-          setLoading(false);
-          return;
-        }
-
-        setHeader({
-          expectedAmount: incomeData.expectedAmount ? incomeData.expectedAmount.toString() : '',
-          contractAmount: incomeData.contractAmount ? incomeData.contractAmount.toString() : '',
-        });
-
-        const items = (incomeData.items || [])
-          .map((item) => ({
-            id: item.id ?? createRowId(),
-            type: item.type,
-            groupName: item.groupName ?? null,
-            category: item.category ?? null,
-            name: item.name ?? '',
-            amount: item.amount ? String(item.amount) : '',
-            note: item.note ?? '',
-            paymentType: item.paymentType ?? '',
-            spentAt: item.spentAt ?? '',
-            description: item.description ?? '',
-            orderIndex: item.orderIndex ?? 0,
-          }))
-          .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
-
-        const loadedSales = items.filter((item) => item.type === 'sales');
-        const loadedExpense = items.filter((item) => item.type === 'expense');
-
-        setSalesItems(loadedSales.length > 0 ? loadedSales : buildDefaultSalesItems());
-        setExpenseItems(loadedExpense.length > 0 ? loadedExpense : buildDefaultExpenseItems());
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to load income statement:', err);
-        if (mounted) {
-          setError('손익계산서를 불러오지 못했습니다.');
-          setLoading(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [siteId]);
 
   const dataRef = useRef({ header, salesItems, expenseItems });
   dataRef.current = { header, salesItems, expenseItems };
 
   // 2분마다 자동 저장
   useEffect(() => {
-    if (!siteId || loading) return;
-    const interval = setInterval(
-      () => {
-        performSave(dataRef.current);
-      },
-      2 * 60 * 1000
-    );
+    if (!siteId || loading || !initialized) return;
+    const interval = setInterval(() => performSave(dataRef.current), 2 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [siteId, loading]);
+  }, [siteId, loading, initialized]);
 
-  const expectedAmount = toNumber(header.expectedAmount);
+  // ─── 계산 로직 ────────────────────────────
   const contractAmount = toNumber(header.contractAmount);
 
   const salesTotal = useMemo(
@@ -289,8 +99,6 @@ export default function IncomeStatementManagePage() {
   const profit = contractAmount - expenseTotal;
   const profitRate = contractAmount > 0 ? (profit / contractAmount) * 100 : 0;
 
-  const ratio = (num, den) => (den > 0 ? (num / den) * 100 : 0);
-
   const variableExpenseGroups = useMemo(() => {
     const grouped = {};
     for (const item of expenseItems) {
@@ -304,15 +112,13 @@ export default function IncomeStatementManagePage() {
 
   const fieldOpsItems = expenseItems.filter((item) => item.groupName === 'field_ops');
 
-  const handleHeaderChange = (key, value) => {
-    setHeader((prev) => ({ ...prev, [key]: value }));
-  };
+  // ─── 핸들러 ───────────────────────────────
+  const handleHeaderChange = (key, value) => setHeader((prev) => ({ ...prev, [key]: value }));
 
-  const updateItem = (setter, id, patch) => {
+  const updateItem = (setter, id, patch) =>
     setter((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-  };
 
-  const addSalesItem = () => {
+  const addSalesItem = () =>
     setSalesItems((prev) => [
       ...prev,
       {
@@ -326,9 +132,8 @@ export default function IncomeStatementManagePage() {
         orderIndex: prev.length,
       },
     ]);
-  };
 
-  const addVariableExpenseItem = (category) => {
+  const addVariableExpenseItem = (category) =>
     setExpenseItems((prev) => [
       ...prev,
       {
@@ -345,9 +150,8 @@ export default function IncomeStatementManagePage() {
         orderIndex: prev.length,
       },
     ]);
-  };
 
-  const addFieldOpsItem = () => {
+  const addFieldOpsItem = () =>
     setExpenseItems((prev) => [
       ...prev,
       {
@@ -364,84 +168,31 @@ export default function IncomeStatementManagePage() {
         orderIndex: prev.length,
       },
     ]);
-  };
 
-  const removeItem = (setter, id) => {
-    setter((prev) => prev.filter((item) => item.id !== id));
-  };
+  const removeItem = (setter, id) => setter((prev) => prev.filter((item) => item.id !== id));
 
-  // 유효성 검사 함수 (저장 전 호출)
   const validateData = (data = dataRef.current) => {
-    const { expenseItems: e } = data;
-
-    // 현장 운영비 유효성 검사
-    const fieldOpsItems = e.filter((item) => item.groupName === 'field_ops');
-
-    // 금액이 없으면 에러
-    const noAmount = fieldOpsItems.filter((item) => !item.amount);
-    if (noAmount.length > 0) {
-      return '현장 운영비 항목에 금액을 입력해 주세요.';
-    }
-
-    // 날짜가 없으면 에러
-    const noDate = fieldOpsItems.filter((item) => !item.spentAt);
-    if (noDate.length > 0) {
-      return '현장 운영비 항목에 날짜를 선택해 주세요.';
-    }
-
+    const ops = data.expenseItems.filter((item) => item.groupName === 'field_ops');
+    if (ops.some((item) => !item.amount)) return '현장 운영비 항목에 금액을 입력해 주세요.';
+    if (ops.some((item) => !item.spentAt)) return '현장 운영비 항목에 날짜를 선택해 주세요.';
     return null;
   };
 
   const performSave = async (data = dataRef.current) => {
     if (!siteId) return;
-
-    // 유효성 검사
     const validationResult = validateData(data);
     if (validationResult) {
-      toast({
-        variant: 'destructive',
-        title: '입력 오류',
-        description: validationResult,
-      });
+      toast({ variant: 'destructive', title: '입력 오류', description: validationResult });
       return;
     }
-
     setSaving(true);
     try {
-      const { header: h, salesItems: s, expenseItems: e } = data;
-
-      const items = [...s, ...e]
-        .filter(
-          (item) =>
-            item.name ||
-            item.amount ||
-            item.note ||
-            item.description ||
-            item.paymentType ||
-            item.spentAt
-        )
-        .map((item, index) => ({
-          type: item.type,
-          groupName: item.groupName,
-          category: item.category,
-          name: item.name,
-          amount: toNumber(item.amount),
-          note: item.note,
-          paymentType: item.paymentType,
-          spentAt: item.spentAt,
-          description: item.description,
-          orderIndex: index,
-        }));
-
-      await upsertIncomeStatement(
+      await upsertMutate({
         siteId,
-        {
-          expectedAmount: h.expectedAmount ? toNumber(h.expectedAmount) : null,
-          contractAmount: h.contractAmount ? toNumber(h.contractAmount) : null,
-        },
-        items
-      );
-
+        header: data.header,
+        salesItems: data.salesItems,
+        expenseItems: data.expenseItems,
+      });
       setLastSavedAt(Date.now());
       toast({
         variant: 'success',
@@ -464,7 +215,7 @@ export default function IncomeStatementManagePage() {
 
   const handleExportExcel = () => {
     exportIncomeStatementToExcel({
-      siteName,
+      siteName: incomeData?.siteName || siteId,
       header,
       salesItems,
       expenseItems,
@@ -484,9 +235,18 @@ export default function IncomeStatementManagePage() {
     });
   };
 
+  // ─── 렌더링 ───────────────────────────────
   if (loading) return <LoadingSpinner message="손익계산서를 불러오는 중입니다..." />;
-  if (error) return <ErrorPage title="오류" message={error} onRetry={() => navigate(-1)} />;
+  if (loadError)
+    return (
+      <ErrorPage
+        title="오류"
+        message="손익계산서를 불러오지 못했습니다."
+        onRetry={() => navigate(-1)}
+      />
+    );
 
+  const siteName = incomeData?.siteName || siteId;
   const lastSavedLabel =
     lastSavedAt != null
       ? new Date(lastSavedAt).toLocaleTimeString('ko-KR', {
@@ -498,6 +258,7 @@ export default function IncomeStatementManagePage() {
 
   return (
     <div className="py-8 space-y-6">
+      {/* 헤더 */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Button
@@ -546,12 +307,11 @@ export default function IncomeStatementManagePage() {
         </div>
       </div>
 
-      {/* Sticky: 상단 입력 + 자동 계산 + 우측 둥근 저장 버튼 (스크롤 시에만) */}
+      {/* Sticky 요약 카드 */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50 shadow-sm pb-4 -mb-4">
         <div className="relative">
           <Card className="border-border/60 shadow-none">
             <CardContent className="p-5 space-y-5">
-              {/* 상단 입력 */}
               <div className="grid gap-4 grid-cols-2">
                 <div className="space-y-2">
                   <label
@@ -562,7 +322,7 @@ export default function IncomeStatementManagePage() {
                   </label>
                   <AmountInput
                     value={header.expectedAmount}
-                    onChange={(value) => handleHeaderChange('expectedAmount', value)}
+                    onChange={(v) => handleHeaderChange('expectedAmount', v)}
                     placeholder="예: 13,000,000"
                     className="h-10"
                   />
@@ -576,31 +336,15 @@ export default function IncomeStatementManagePage() {
                   </label>
                   <AmountInput
                     value={header.contractAmount}
-                    onChange={(value) => handleHeaderChange('contractAmount', value)}
+                    onChange={(v) => handleHeaderChange('contractAmount', v)}
                     placeholder="예: 13,770,000"
                     className="h-10"
                   />
                 </div>
               </div>
 
-              {/* 자동 계산 - 가로 배치 + 색상 */}
               <div className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 px-5 py-4">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
-                    <Wallet className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      매출 합계
-                    </p>
-                    <p className="text-lg font-bold text-blue-900 dark:text-blue-100 truncate tabular-nums">
-                      <AmountDisplay
-                        value={salesTotal}
-                        placeholderClass="text-blue-400 dark:text-blue-600"
-                      />
-                    </p>
-                  </div>
-                </div>
+                <SummaryBadge icon={Wallet} label="매출 합계" value={salesTotal} color="blue" />
                 <div className="flex-1 min-w-[240px] flex items-start gap-4 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/50 px-5 py-4">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 mt-0.5">
                     <Receipt className="h-5 w-5" />
@@ -640,22 +384,7 @@ export default function IncomeStatementManagePage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-5 py-4">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
-                    <TrendingUp className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                      손익
-                    </p>
-                    <p className="text-lg font-bold text-emerald-900 dark:text-emerald-100 truncate tabular-nums">
-                      <AmountDisplay
-                        value={profit}
-                        placeholderClass="text-emerald-400 dark:text-emerald-600"
-                      />
-                    </p>
-                  </div>
-                </div>
+                <SummaryBadge icon={TrendingUp} label="손익" value={profit} color="emerald" />
                 <div className="flex-1 min-w-[140px] flex items-center gap-4 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/50 px-5 py-4">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400">
                     <BadgePercent className="h-5 w-5" />
@@ -696,6 +425,7 @@ export default function IncomeStatementManagePage() {
         </div>
       </div>
 
+      {/* 매출 */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">매출</CardTitle>
@@ -761,6 +491,7 @@ export default function IncomeStatementManagePage() {
         </CardContent>
       </Card>
 
+      {/* 지출 - 변동비 */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">지출 - 변동비</CardTitle>
@@ -773,7 +504,6 @@ export default function IncomeStatementManagePage() {
             return (
               <div key={category} className={`rounded-lg border ${bgColor} overflow-hidden`}>
                 <div className="flex">
-                  {/* 좌측: 항목 리스트 */}
                   <div className="flex-1 p-4 min-w-0">
                     <div className="flex items-center justify-between gap-3 mb-3 pb-2 border-b">
                       <h4 className="text-sm font-semibold">{category}</h4>
@@ -849,7 +579,6 @@ export default function IncomeStatementManagePage() {
                       })}
                     </div>
                   </div>
-                  {/* 우측: 합계 */}
                   <div className="w-48 shrink-0 border-l bg-muted/50 flex flex-col items-center justify-center p-4 gap-2">
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">합계</p>
@@ -876,6 +605,7 @@ export default function IncomeStatementManagePage() {
         </CardContent>
       </Card>
 
+      {/* 지출 - 현장 운영비 */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-4">
@@ -940,13 +670,14 @@ export default function IncomeStatementManagePage() {
                           <select
                             className="h-10 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 text-sm"
                             value={dropdownValue}
-                            onChange={(e) => {
-                              const value = e.target.value;
+                            onChange={(e) =>
                               updateItem(setExpenseItems, item.id, {
                                 paymentType:
-                                  value === CUSTOM_PAYMENT_TYPE ? CUSTOM_PAYMENT_TYPE : value,
-                              });
-                            }}
+                                  e.target.value === CUSTOM_PAYMENT_TYPE
+                                    ? CUSTOM_PAYMENT_TYPE
+                                    : e.target.value,
+                              })
+                            }
                           >
                             <option value="">선택</option>
                             {PAYMENT_TYPES.map((type) => (
@@ -981,9 +712,7 @@ export default function IncomeStatementManagePage() {
                     <AmountInput
                       className="col-span-2"
                       value={item.amount}
-                      onChange={(value) =>
-                        updateItem(setExpenseItems, item.id, { amount: value })
-                      }
+                      onChange={(value) => updateItem(setExpenseItems, item.id, { amount: value })}
                       placeholder="0원"
                     />
                     <Input
@@ -1036,6 +765,48 @@ export default function IncomeStatementManagePage() {
             </>
           )}
         </Button>
+      </div>
+    </div>
+  );
+}
+
+// 요약 뱃지 컴포넌트 (매출/손익 등 간단한 요약에 사용)
+function SummaryBadge({ icon: Icon, label, value, color }) {
+  const colorMap = {
+    blue: {
+      border: 'border-blue-200 dark:border-blue-800',
+      bg: 'bg-blue-50 dark:bg-blue-950/50',
+      iconBg: 'bg-blue-100 dark:bg-blue-900/50',
+      iconText: 'text-blue-600 dark:text-blue-400',
+      labelText: 'text-blue-700 dark:text-blue-300',
+      valueText: 'text-blue-900 dark:text-blue-100',
+      placeholder: 'text-blue-400 dark:text-blue-600',
+    },
+    emerald: {
+      border: 'border-emerald-200 dark:border-emerald-800',
+      bg: 'bg-emerald-50 dark:bg-emerald-950/50',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-900/50',
+      iconText: 'text-emerald-600 dark:text-emerald-400',
+      labelText: 'text-emerald-700 dark:text-emerald-300',
+      valueText: 'text-emerald-900 dark:text-emerald-100',
+      placeholder: 'text-emerald-400 dark:text-emerald-600',
+    },
+  };
+  const c = colorMap[color] || colorMap.blue;
+  return (
+    <div
+      className={`flex-1 min-w-[160px] flex items-center gap-4 rounded-xl border ${c.border} ${c.bg} px-5 py-4`}
+    >
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${c.iconBg} ${c.iconText}`}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className={`text-sm font-medium ${c.labelText}`}>{label}</p>
+        <p className={`text-lg font-bold ${c.valueText} truncate tabular-nums`}>
+          <AmountDisplay value={value} placeholderClass={c.placeholder} />
+        </p>
       </div>
     </div>
   );

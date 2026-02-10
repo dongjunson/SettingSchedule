@@ -1,8 +1,10 @@
 import { ArrowLeft, Building2, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LoadingSpinner } from '../components/common';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { toast } from '../hooks/use-toast';
 import { useSites, useUpdateSite } from '../hooks/useQueries';
 import { STAGE } from '../lib/constants';
 
@@ -20,7 +22,11 @@ export default function AdminHiddenProjectsPage() {
     try {
       await updateSite({ siteId: site.id, updates: { stage: STAGE.IN_PROGRESS } });
     } catch (err) {
-      window.alert(err?.message || '단계 변경에 실패했습니다.');
+      toast({
+        variant: 'destructive',
+        title: '변경 실패',
+        description: err?.message || '단계 변경에 실패했습니다.',
+      });
     } finally {
       setUpdatingSiteId(null);
     }
@@ -39,10 +45,7 @@ export default function AdminHiddenProjectsPage() {
       </p>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground animate-pulse">데이터를 불러오는 중입니다...</p>
-        </div>
+        <LoadingSpinner message="데이터를 불러오는 중입니다..." fullScreen={false} />
       ) : hiddenSites.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
