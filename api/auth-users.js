@@ -24,10 +24,16 @@ export default {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
-      return jsonResponse(
-        { error: '서버 설정이 올바르지 않습니다. SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY를 확인하세요.' },
-        500
-      );
+      const missing = [];
+      if (!supabaseUrl) missing.push('SUPABASE_URL 또는 VITE_SUPABASE_URL');
+      if (!supabaseAnonKey) missing.push('SUPABASE_ANON_KEY 또는 VITE_SUPABASE_ANON_KEY');
+      if (!serviceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+      const message = [
+        '서버 설정이 올바르지 않습니다. 누락된 환경 변수: ' + missing.join(', '),
+        'Vercel 대시보드 → 프로젝트 → Settings → Environment Variables 에서 추가한 뒤 Redeploy 하세요.',
+        'SUPABASE_SERVICE_ROLE_KEY는 Supabase 대시보드 → Settings → API 에서 확인할 수 있습니다.',
+      ].join(' ');
+      return jsonResponse({ error: message }, 500);
     }
 
     const authHeader = request.headers.get('Authorization');
