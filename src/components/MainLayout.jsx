@@ -9,6 +9,7 @@ import {
   PlusCircle,
   Settings,
   SlidersHorizontal,
+  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
@@ -67,6 +68,10 @@ export default function MainLayout() {
                 <NavLink to="/admin/invite-user" className={adminNavLinkClass}>
                   <MailPlus className="h-5 w-5 shrink-0" />
                   <span>사용자 초대</span>
+                </NavLink>
+                <NavLink to="/admin/users" className={adminNavLinkClass}>
+                  <Users className="h-5 w-5 shrink-0" />
+                  <span>사용자 관리</span>
                 </NavLink>
                 <NavLink to="/admin/projects" className={adminNavLinkClass}>
                   <SlidersHorizontal className="h-5 w-5 shrink-0" />

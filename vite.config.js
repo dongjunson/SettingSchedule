@@ -12,11 +12,16 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // 로컬 개발 시 /api/invite-user → Supabase Edge Function으로 프록시
+      // 로컬 개발 시 /api/* → Supabase Edge Function으로 프록시
       '/api/invite-user': {
         target: 'https://lalrhxojwgbuwzybdgod.supabase.co',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api\/invite-user/, '/functions/v1/invite-user'),
+      },
+      '/api/auth-users': {
+        target: 'https://lalrhxojwgbuwzybdgod.supabase.co',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/auth-users/, '/functions/v1/auth-users'),
       },
     },
   },

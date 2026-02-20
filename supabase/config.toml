@@ -3,3 +3,6 @@
 
 [functions.invite-user]
 verify_jwt = false
+
+[functions.auth-users]
+verify_jwt = false

@@ -562,4 +562,70 @@ export const inviteUserByEmail = async (email, group) => {
   }
 };
 
+/**
+ * 관리자 전용: Auth 등록 사용자 목록 조회
+ * @returns {{ users: Array<{ id: string, email: string, created_at: string, user_metadata: object }> } | { error: string }}
+ */
+export const getAuthUsers = async () => {
+  if (!hasSupabaseEnv) {
+    return { error: ERROR_MESSAGES.SYSTEM_NOT_CONFIGURED };
+  }
+  try {
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    const token = refreshData?.session?.access_token;
+    if (!token) {
+      return { error: ERROR_MESSAGES.SESSION_REFRESH_FAILED };
+    }
+    const res = await fetch('/api/auth-users', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 401) return { error: ERROR_MESSAGES.SESSION_EXPIRED };
+      return { error: data?.error ?? (res.status === 404 ? ERROR_MESSAGES.SERVICE_UNAVAILABLE : `요청 실패 (${res.status})`) };
+    }
+    if (data?.error) return { error: data.error };
+    return { users: data?.users ?? [] };
+  } catch (err) {
+    console.error('getAuthUsers error:', err);
+    const isNetwork = err?.message?.includes('Failed to send') || err?.message?.includes('fetch') || err?.name === 'TypeError';
+    return { error: isNetwork ? ERROR_MESSAGES.NETWORK_ERROR : ERROR_MESSAGES.SERVICE_UNAVAILABLE };
+  }
+};
+
+/**
+ * 관리자 전용: Auth 사용자 삭제
+ * @param {string} userId - 삭제할 사용자 Auth UUID
+ * @returns {{ ok: boolean, error?: string }}
+ */
+export const deleteAuthUser = async (userId) => {
+  if (!hasSupabaseEnv) {
+    return { ok: false, error: ERROR_MESSAGES.SYSTEM_NOT_CONFIGURED };
+  }
+  try {
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    const token = refreshData?.session?.access_token;
+    if (!token) {
+      return { ok: false, error: ERROR_MESSAGES.SESSION_REFRESH_FAILED };
+    }
+    const res = await fetch('/api/auth-users', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: userId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 401) return { ok: false, error: ERROR_MESSAGES.SESSION_EXPIRED };
+      return { ok: false, error: data?.error ?? `요청 실패 (${res.status})` };
+    }
+    if (data?.error) return { ok: false, error: data.error };
+    return { ok: true };
+  } catch (err) {
+    console.error('deleteAuthUser error:', err);
+    const isNetwork = err?.message?.includes('Failed to send') || err?.message?.includes('fetch') || err?.name === 'TypeError';
+    return { ok: false, error: isNetwork ? ERROR_MESSAGES.NETWORK_ERROR : ERROR_MESSAGES.SERVICE_UNAVAILABLE };
+  }
+};
+
 export default api;

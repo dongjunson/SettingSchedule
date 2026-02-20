@@ -74,6 +74,17 @@ sample-schedule/
 3. **체크리스트 확인**: 상단의 "점검 리스트" 버튼을 클릭하여 체크리스트 페이지로 이동
 4. **체크리스트 체크**: 각 항목의 체크박스를 클릭하여 완료 상태 변경
 
+## 사용자 관리 API (관리자)
+
+관리자 메뉴의 **사용자 관리**는 Vercel 서버리스 함수(`api/auth-users.js`)를 사용합니다. **Supabase CLI 없이** Vercel에 배포하면 동작합니다.
+
+- Vercel 프로젝트에 다음 환경 변수를 설정하세요.
+  - `SUPABASE_URL`: Supabase 프로젝트 URL
+  - `SUPABASE_ANON_KEY`: Supabase anon key
+  - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (대시보드 → Settings → API에서 확인)
+- 저장 후 프로젝트를 다시 배포하면 사용자 조회/삭제가 동작합니다.
+- 로컬(`npm run dev`)에서는 이 API가 없어 사용자 관리 목록이 안 나올 수 있습니다. 로컬에서 테스트하려면 `vercel dev`로 실행하세요.
+
 ## 데이터 저장
 
 모든 데이터는 API 서버에 저장되며, zustand의 persist 미들웨어를 통해 브라우저의 localStorage에 캐시됩니다. 페이지를 새로고침해도 캐시된 데이터가 유지되며, 최신 데이터는 서버에서 가져옵니다.

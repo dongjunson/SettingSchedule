@@ -10,6 +10,7 @@ import AdminHiddenProjectsPage from './pages/AdminHiddenProjectsPage';
 import AdminInviteUserPage from './pages/AdminInviteUserPage';
 import AdminNewProjectPage from './pages/AdminNewProjectPage';
 import AdminProjectManagePage from './pages/AdminProjectManagePage';
+import AdminUsersPage from './pages/AdminUsersPage';
 import ChecklistPage from './pages/ChecklistPage';
 import CompletedProjectsPage from './pages/CompletedProjectsPage';
 import IncomeStatementManagePage from './pages/IncomeStatementManagePage';
@@ -107,6 +108,7 @@ function App() {
             <Route path="completed-projects" element={<CompletedProjectsPage />} />
             <Route path="admin/new-project" element={<AdminNewProjectPage />} />
             <Route path="admin/invite-user" element={<AdminInviteUserPage />} />
+            <Route path="admin/users" element={<AdminUsersPage />} />
             <Route path="admin/projects" element={<AdminProjectManagePage />} />
             <Route path="admin/hidden-projects" element={<AdminHiddenProjectsPage />} />
           </Route>
