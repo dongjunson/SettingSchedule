@@ -83,7 +83,9 @@ sample-schedule/
   - `SUPABASE_ANON_KEY`: Supabase anon key
   - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (대시보드 → Settings → API에서 확인)
 - 저장 후 프로젝트를 다시 배포하면 사용자 조회/삭제가 동작합니다.
-- 로컬(`npm run dev`)에서는 이 API가 없어 사용자 관리 목록이 안 나올 수 있습니다. 로컬에서 테스트하려면 `vercel dev`로 실행하세요.
+- **로컬 개발**에서도 사용자 관리 목록을 보려면 `.env`에 배포된 앱 URL을 넣으세요:  
+  `VITE_VERCEL_APP_URL=https://your-app.vercel.app`  
+  (실제 배포 URL로 바꾸기) 저장 후 `npm run dev`를 다시 실행하면 `/api/auth-users` 요청이 배포된 API로 프록시됩니다.
 
 ## 데이터 저장
 

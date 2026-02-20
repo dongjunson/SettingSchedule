@@ -40,9 +40,12 @@ export default {
     if (!authHeader) {
       return jsonResponse({ error: 'Authorization header required' }, 401);
     }
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    if (!token) {
+      return jsonResponse({ error: 'Authorization header required' }, 401);
+    }
 
     try {
-      const token = authHeader.replace(/^Bearer\s+/i, '');
       const clientWithAuth = createClient(supabaseUrl, supabaseAnonKey);
       const {
         data: { user },
