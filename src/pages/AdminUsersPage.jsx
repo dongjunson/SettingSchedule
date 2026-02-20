@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 export default function AdminUsersPage() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+  const [appUsersCount, setAppUsersCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentAuthId, setCurrentAuthId] = useState(null);
@@ -28,8 +29,10 @@ export default function AdminUsersPage() {
       if (listResult?.error) {
         setError(listResult.error);
         setUsers([]);
+        setAppUsersCount(null);
       } else {
         setUsers(listResult?.users ?? []);
+        setAppUsersCount(listResult?.appUsersCount ?? null);
       }
     } catch (err) {
       setError(err?.message ?? '목록을 불러오지 못했습니다.');
@@ -85,6 +88,14 @@ export default function AdminUsersPage() {
       <p className="text-muted-foreground mb-6">
         Auth에 등록된 사용자 목록입니다. 관리자는 다른 사용자를 삭제할 수 있습니다. (본인 계정은 삭제할 수 없습니다.)
       </p>
+      {appUsersCount !== null && (
+        <p className="text-sm text-muted-foreground mb-6">
+          Auth <strong>{users.length}명</strong> · app_users <strong>{appUsersCount}명</strong>
+          {users.length !== appUsersCount && (
+            <span> — 수가 다르면 초대 후 비밀번호 미설정, 또는 app_users만 등록된 계정이 있을 수 있습니다.</span>
+          )}
+        </p>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">

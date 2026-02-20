@@ -586,7 +586,11 @@ export const getAuthUsers = async () => {
       return { error: data?.error ?? (res.status === 404 ? ERROR_MESSAGES.SERVICE_UNAVAILABLE : `요청 실패 (${res.status})`) };
     }
     if (data?.error) return { error: data.error };
-    return { users: data?.users ?? [] };
+    return {
+      users: data?.users ?? [],
+      authCount: data?.authCount,
+      appUsersCount: data?.appUsersCount,
+    };
   } catch (err) {
     console.error('getAuthUsers error:', err);
     const isNetwork = err?.message?.includes('Failed to send') || err?.message?.includes('fetch') || err?.name === 'TypeError';

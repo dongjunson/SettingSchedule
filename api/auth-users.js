@@ -29,7 +29,7 @@ export default {
       if (!supabaseAnonKey) missing.push('SUPABASE_ANON_KEY 또는 VITE_SUPABASE_ANON_KEY');
       if (!serviceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
       const message = [
-        '서버 설정이 올바르지 않습니다. 누락된 환경 변수: ' + missing.join(', '),
+        `서버 설정이 올바르지 않습니다. 누락된 환경 변수: ${missing.join(', ')}`,
         'Vercel 대시보드 → 프로젝트 → Settings → Environment Variables 에서 추가한 뒤 Redeploy 하세요.',
         'SUPABASE_SERVICE_ROLE_KEY는 Supabase 대시보드 → Settings → API 에서 확인할 수 있습니다.',
       ].join(' ');
@@ -76,7 +76,17 @@ export default {
           created_at: u.created_at,
           user_metadata: u.user_metadata ?? {},
         }));
-        return jsonResponse({ users });
+
+        // app_users 테이블 행 수 (service_role로 RLS 우회 조회)
+        let appUsersCount = null;
+        try {
+          const { count } = await adminClient.from('app_users').select('*', { count: 'exact', head: true });
+          appUsersCount = count ?? null;
+        } catch {
+          // app_users 없거나 권한 이슈 시 무시
+        }
+
+        return jsonResponse({ users, authCount: users.length, appUsersCount });
       }
 
       if (request.method === 'DELETE') {
