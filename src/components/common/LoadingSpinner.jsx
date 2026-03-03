@@ -7,7 +7,11 @@ import { Loader2 } from 'lucide-react';
  * @param {string} [props.className] - 추가 CSS 클래스
  * @param {boolean} [props.fullScreen] - 전체 화면 중앙 배치 여부
  */
-export default function LoadingSpinner({ message = '로딩 중...', className = '', fullScreen = true }) {
+export default function LoadingSpinner({
+  message = '로딩 중...',
+  className = '',
+  fullScreen = true,
+}) {
   const containerClass = fullScreen
     ? 'flex flex-col items-center justify-center min-h-[60vh]'
     : 'flex flex-col items-center justify-center p-8';

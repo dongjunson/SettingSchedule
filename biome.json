@@ -7,7 +7,16 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["node_modules", "dist", "build", ".vite", "coverage", "*.min.js", "public", "supabase"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      "build",
+      ".vite",
+      "coverage",
+      "*.min.js",
+      "public",
+      "supabase"
+    ]
   },
   "formatter": {
     "enabled": true,

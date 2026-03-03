@@ -1,95 +1,139 @@
-# 사업소 타임라인 관리 시스템
+# PMS (사업소 타임라인 관리 시스템)
 
-React + Vite + shadcn/ui + Tailwind CSS + Lucide + Recharts를 사용한 사업소 타임라인 및 체크리스트 관리 시스템입니다.
+React + Vite 기반의 사업소 운영 프로젝트 관리 도구입니다. 타임라인/체크리스트 진행 관리, 손익계산서 관리, 관리자 사용자 초대/관리 기능을 제공합니다.
 
-## 기능
+## 핵심 기능
 
-- 🏢 **사업소 선택**: 첫 화면에서 사업소를 선택하여 해당 타임라인과 체크리스트 확인
-- 📅 **타임라인 관리**: R&D와 현장팀의 작업 진행 상황을 실시간으로 체크하고 업데이트
-- ✅ **체크리스트 관리**: 시스템 기능 점검 항목을 체크하고 진행도 추적
-- 📊 **진행도 차트**: Recharts를 사용한 시각적인 진행도 차트
-- 💾 **상태 관리**: zustand를 사용한 상태 관리 및 API 연동
+- 사업소별 타임라인 진행 관리 (대기/작업중/완료, 완료자/완료시각 기록)
+- 사업소별 체크리스트 관리
+- 진행도 시각화 (전체/타임라인/체크리스트)
+- 손익계산서(매출/지출) 입력 및 엑셀 내보내기
+- 관리자 전용 기능
+  - 신규 프로젝트 등록/수정/삭제
+  - 사용자 초대(Edge Function)
+  - Auth 사용자 목록/삭제(Vercel Serverless)
 
 ## 기술 스택
 
-- **React 18**: UI 라이브러리
-- **Vite**: 빌드 도구
-- **React Router**: 라우팅
-- **Tailwind CSS**: 스타일링
-- **shadcn/ui**: UI 컴포넌트
-- **Lucide React**: 아이콘
-- **Recharts**: 차트 라이브러리
+- Frontend: React 18, Vite 5, React Router 6
+- UI: Tailwind CSS, shadcn/ui, Lucide
+- Data: Supabase (`@supabase/supabase-js`), TanStack Query, Zustand
+- Export: `xlsx-js-style`
+- Tooling: Biome
 
-## 설치 및 실행
+## 요구 사항
 
-### 1. 의존성 설치
+- Node.js 18+
+- npm
+- (권장) Supabase 프로젝트
+
+## 시작하기
+
+1) 의존성 설치
 
 ```bash
 npm install
 ```
 
-### 2. 개발 서버 실행
+2) 환경 변수 설정 (`.env`)
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+
+# 선택: 로컬에서 /api/auth-users를 배포 앱으로 프록시
+# VITE_VERCEL_APP_URL=https://your-app.vercel.app
+
+# 선택: Supabase 미설정 시 fallback REST API 주소
+# VITE_API_BASE_URL=http://localhost:3000/api
+```
+
+3) 개발 서버 실행
 
 ```bash
 npm run dev
 ```
 
-브라우저에서 `http://localhost:5173`으로 접속하세요.
+브라우저에서 `http://localhost:5173` 접속
 
-### 3. 빌드
+## 스크립트
 
 ```bash
-npm run build
+npm run dev        # 개발 서버
+npm run build      # 프로덕션 빌드
+npm run preview    # 빌드 결과 로컬 확인
+npm run lint       # Biome lint
+npm run lint:fix   # Biome lint 자동 수정
+npm run format     # Biome format
+npm run check      # Biome 종합 검사
+npm run check:fix  # Biome 검사 자동 수정
 ```
 
-## 프로젝트 구조
+## 라우트 구조
+
+- 공개
+  - `/login`
+  - `/set-password`
+- 로그인 필요
+  - `/` (구축중 프로젝트)
+  - `/completed-projects`
+  - `/site/:siteId`
+  - `/site/:siteId/checklist`
+- 관리자 전용
+  - `/income-statement`
+  - `/income-statement/manage`
+  - `/admin/new-project`
+  - `/admin/invite-user`
+  - `/admin/users`
+  - `/admin/projects`
+  - `/admin/hidden-projects`
+
+## 디렉터리 개요
 
 ```
-sample-schedule/
+.
 ├── src/
-│   ├── components/
-│   │   ├── ui/          # shadcn/ui 컴포넌트
-│   │   └── ProgressChart.jsx
-│   ├── lib/
-│   │   ├── api.js       # API 통신
-│   │   ├── store.js     # zustand 상태 관리
-│   │   └── utils.js     # 유틸리티 함수
-│   ├── pages/
-│   │   ├── SiteSelection.jsx  # 사업소 선택 페이지
-│   │   ├── TimelinePage.jsx   # 타임라인 페이지
-│   │   └── ChecklistPage.jsx  # 체크리스트 페이지
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
-├── index.html
-├── package.json
-├── vite.config.js
-└── tailwind.config.js
+│   ├── components/         # 공통 UI, 라우트 가드, 타임라인 컴포넌트
+│   ├── hooks/              # React Query hooks
+│   ├── lib/                # api/supabase/store/constants/export
+│   └── pages/              # 화면 단위 페이지
+├── api/
+│   └── auth-users.js       # Vercel Serverless (관리자 사용자 목록/삭제)
+├── supabase/functions/
+│   ├── invite-user/        # Edge Function (사용자 초대)
+│   └── auth-users/         # Edge Function 버전(참고/대안)
+├── vercel.json             # rewrite 설정
+└── supabase-setup-manual.md
 ```
 
-## 사용 방법
+## 배포 및 백엔드 연동
 
-1. **사업소 선택**: 첫 화면에서 사업소 카드를 클릭하여 해당 사업소의 타임라인으로 이동
-2. **타임라인 관리**: 각 작업 항목의 R&D 또는 현장팀 버튼을 클릭하여 상태 변경 (대기 → 작업중 → 완료)
-3. **체크리스트 확인**: 상단의 "점검 리스트" 버튼을 클릭하여 체크리스트 페이지로 이동
-4. **체크리스트 체크**: 각 항목의 체크박스를 클릭하여 완료 상태 변경
+### 1) Supabase
 
-## 사용자 관리 API (관리자)
+- DB/RLS/RPC 초기 설정은 `supabase-setup-manual.md` 참고
+- 필수 클라이언트 환경 변수
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
 
-관리자 메뉴의 **사용자 관리**는 Vercel 서버리스 함수(`api/auth-users.js`)를 사용합니다. **Supabase CLI 없이** Vercel에 배포하면 동작합니다.
+### 2) 사용자 초대 API (`/api/invite-user`)
 
-- Vercel 프로젝트에 다음 환경 변수를 설정하세요.
-  - `SUPABASE_URL`: Supabase 프로젝트 URL
-  - `SUPABASE_ANON_KEY`: Supabase anon key
-  - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (대시보드 → Settings → API에서 확인)
-- 저장 후 프로젝트를 다시 배포하면 사용자 조회/삭제가 동작합니다.
-- **로컬 개발**에서도 사용자 관리 목록을 보려면 `.env`에 배포된 앱 URL을 넣으세요:  
-  `VITE_VERCEL_APP_URL=https://your-app.vercel.app`  
-  (실제 배포 URL로 바꾸기) 저장 후 `npm run dev`를 다시 실행하면 `/api/auth-users` 요청이 배포된 API로 프록시됩니다.
+- 앱은 `/api/invite-user`로 호출하고, `vercel.json`이 Supabase Edge Function으로 rewrite
+- Edge Function `invite-user`를 Supabase에 배포해야 동작
 
-## 데이터 저장
+### 3) 사용자 관리 API (`/api/auth-users`)
 
-모든 데이터는 API 서버에 저장되며, zustand의 persist 미들웨어를 통해 브라우저의 localStorage에 캐시됩니다. 페이지를 새로고침해도 캐시된 데이터가 유지되며, 최신 데이터는 서버에서 가져옵니다.
+- Vercel Serverless 함수 `api/auth-users.js` 사용
+- Vercel 환경 변수 필요
+  - `SUPABASE_URL` (또는 `VITE_SUPABASE_URL`)
+  - `SUPABASE_ANON_KEY` (또는 `VITE_SUPABASE_ANON_KEY`)
+  - `SUPABASE_SERVICE_ROLE_KEY`
+- 로컬 개발에서 같은 엔드포인트 테스트 시 `VITE_VERCEL_APP_URL` 설정 가능
+
+## 참고 문서
+
+- `supabase-setup-manual.md`: Supabase 생성, 테이블/RLS/RPC, Edge Function 배포
+- `database-schema.md`: 테이블 스키마
+- `api-spec.md`: 클라이언트 데이터 접근 규약
 
 ## 라이선스
 

@@ -58,9 +58,7 @@ export default function AdminNewProjectPage() {
             )}
           </Button>
         </div>
-        {createError && (
-          <p className="text-sm text-destructive">{createError}</p>
-        )}
+        {createError && <p className="text-sm text-destructive">{createError}</p>}
       </div>
     </div>
   );

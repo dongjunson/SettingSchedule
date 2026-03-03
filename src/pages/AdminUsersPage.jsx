@@ -1,10 +1,10 @@
 import { ArrowLeft, Loader2, Trash2, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LoadingSpinner } from '../components/common';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { LoadingSpinner } from '../components/common';
-import { getAuthUsers, deleteAuthUser } from '../lib/api';
+import { deleteAuthUser, getAuthUsers } from '../lib/api';
 import { supabase } from '../lib/supabase';
 
 export default function AdminUsersPage() {
@@ -86,13 +86,18 @@ export default function AdminUsersPage() {
 
       <h1 className="text-2xl font-bold text-foreground mb-2">사용자 관리</h1>
       <p className="text-muted-foreground mb-6">
-        Auth에 등록된 사용자 목록입니다. 관리자는 다른 사용자를 삭제할 수 있습니다. (본인 계정은 삭제할 수 없습니다.)
+        Auth에 등록된 사용자 목록입니다. 관리자는 다른 사용자를 삭제할 수 있습니다. (본인 계정은
+        삭제할 수 없습니다.)
       </p>
       {appUsersCount !== null && (
         <p className="text-sm text-muted-foreground mb-6">
           Auth <strong>{users.length}명</strong> · app_users <strong>{appUsersCount}명</strong>
           {users.length !== appUsersCount && (
-            <span> — 수가 다르면 초대 후 비밀번호 미설정, 또는 app_users만 등록된 계정이 있을 수 있습니다.</span>
+            <span>
+              {' '}
+              — 수가 다르면 초대 후 비밀번호 미설정, 또는 app_users만 등록된 계정이 있을 수
+              있습니다.
+            </span>
           )}
         </p>
       )}

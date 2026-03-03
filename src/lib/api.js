@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_CONFIG, ERROR_MESSAGES, hasSupabaseEnv, STATUS } from './constants';
+import { API_CONFIG, ERROR_MESSAGES, STATUS, hasSupabaseEnv } from './constants';
 import { supabase } from './supabase';
 
 // axios 인스턴스 생성 (Supabase 미설정 시 fallback)
@@ -540,9 +540,7 @@ export const inviteUserByEmail = async (email, group) => {
       }
       const msg =
         data?.error ??
-        (res.status === 404
-          ? ERROR_MESSAGES.SERVICE_UNAVAILABLE
-          : `요청 실패 (${res.status})`);
+        (res.status === 404 ? ERROR_MESSAGES.SERVICE_UNAVAILABLE : `요청 실패 (${res.status})`);
       return { ok: false, error: msg };
     }
     if (data?.error) {
@@ -583,7 +581,11 @@ export const getAuthUsers = async () => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (res.status === 401) return { error: ERROR_MESSAGES.SESSION_EXPIRED };
-      return { error: data?.error ?? (res.status === 404 ? ERROR_MESSAGES.SERVICE_UNAVAILABLE : `요청 실패 (${res.status})`) };
+      return {
+        error:
+          data?.error ??
+          (res.status === 404 ? ERROR_MESSAGES.SERVICE_UNAVAILABLE : `요청 실패 (${res.status})`),
+      };
     }
     if (data?.error) return { error: data.error };
     return {
@@ -593,7 +595,10 @@ export const getAuthUsers = async () => {
     };
   } catch (err) {
     console.error('getAuthUsers error:', err);
-    const isNetwork = err?.message?.includes('Failed to send') || err?.message?.includes('fetch') || err?.name === 'TypeError';
+    const isNetwork =
+      err?.message?.includes('Failed to send') ||
+      err?.message?.includes('fetch') ||
+      err?.name === 'TypeError';
     return { error: isNetwork ? ERROR_MESSAGES.NETWORK_ERROR : ERROR_MESSAGES.SERVICE_UNAVAILABLE };
   }
 };
@@ -627,8 +632,14 @@ export const deleteAuthUser = async (userId) => {
     return { ok: true };
   } catch (err) {
     console.error('deleteAuthUser error:', err);
-    const isNetwork = err?.message?.includes('Failed to send') || err?.message?.includes('fetch') || err?.name === 'TypeError';
-    return { ok: false, error: isNetwork ? ERROR_MESSAGES.NETWORK_ERROR : ERROR_MESSAGES.SERVICE_UNAVAILABLE };
+    const isNetwork =
+      err?.message?.includes('Failed to send') ||
+      err?.message?.includes('fetch') ||
+      err?.name === 'TypeError';
+    return {
+      ok: false,
+      error: isNetwork ? ERROR_MESSAGES.NETWORK_ERROR : ERROR_MESSAGES.SERVICE_UNAVAILABLE,
+    };
   }
 };
 

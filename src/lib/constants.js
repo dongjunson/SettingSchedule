@@ -64,7 +64,12 @@ export const API_CONFIG = {
 export const FALLBACK_USERS = [
   { id: 'admin', email: 'admin@saferobo.co.kr', password: 'joy&rising', group: USER_GROUPS.ADMIN },
   { id: 'rnd', email: 'rnd@saferobo.co.kr', password: 'joy&rising', group: USER_GROUPS.RND },
-  { id: 'system', email: 'system@saferobo.co.kr', password: 'joy&rising', group: USER_GROUPS.FIELD },
+  {
+    id: 'system',
+    email: 'system@saferobo.co.kr',
+    password: 'joy&rising',
+    group: USER_GROUPS.FIELD,
+  },
 ];
 
 // 에러 메시지

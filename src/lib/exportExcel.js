@@ -198,62 +198,97 @@ export function exportIncomeStatementToExcel(data) {
   // 제목
   rows.push([`${siteName} 손익계산서`, '', '', '', '', '']);
   styleMap.push(['title', 'title', 'title', 'title', 'title', 'title']);
-  
-  rows.push([`출력일: ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '']);
+
+  rows.push([
+    `출력일: ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+    '',
+    '',
+    '',
+    '',
+    '',
+  ]);
   styleMap.push(['subtitle', 'subtitle', 'subtitle', 'subtitle', 'subtitle', 'subtitle']);
-  
+
   rows.push(['', '', '', '', '', '']);
   styleMap.push([null, null, null, null, null, null]);
 
   // 기본 정보
   rows.push(['📋 기본 정보', '', '', '', '', '']);
-  styleMap.push(['sectionHeader', 'sectionHeader', 'sectionHeader', 'sectionHeader', 'sectionHeader', 'sectionHeader']);
-  
-  rows.push(['가예상금액', `${formatNumber(Number(header.expectedAmount || 0))}원`, '', '', '', '']);
+  styleMap.push([
+    'sectionHeader',
+    'sectionHeader',
+    'sectionHeader',
+    'sectionHeader',
+    'sectionHeader',
+    'sectionHeader',
+  ]);
+
+  rows.push([
+    '가예상금액',
+    `${formatNumber(Number(header.expectedAmount || 0))}원`,
+    '',
+    '',
+    '',
+    '',
+  ]);
   styleMap.push(['summaryLabel', 'summaryValuePositive', null, null, null, null]);
-  
+
   rows.push(['계약금액', `${formatNumber(Number(header.contractAmount || 0))}원`, '', '', '', '']);
   styleMap.push(['summaryLabel', 'summaryValuePositive', null, null, null, null]);
-  
+
   rows.push(['', '', '', '', '', '']);
   styleMap.push([null, null, null, null, null, null]);
 
   // 요약
   rows.push(['📊 요약', '', '', '', '', '']);
-  styleMap.push(['sectionHeader', 'sectionHeader', 'sectionHeader', 'sectionHeader', 'sectionHeader', 'sectionHeader']);
-  
+  styleMap.push([
+    'sectionHeader',
+    'sectionHeader',
+    'sectionHeader',
+    'sectionHeader',
+    'sectionHeader',
+    'sectionHeader',
+  ]);
+
   rows.push(['매출 합계', `${formatNumber(totals.salesTotal)}원`, '', '', '', '']);
   styleMap.push(['summaryLabel', 'summaryValuePositive', null, null, null, null]);
-  
+
   rows.push(['지출 합계', `${formatNumber(totals.expenseTotal)}원`, '', '', '', '']);
   styleMap.push(['summaryLabel', 'summaryValueExpense', null, null, null, null]);
-  
+
   rows.push(['  └ 변동비', `${formatNumber(totals.variableExpenseTotal)}원`, '', '', '', '']);
   styleMap.push(['summaryLabel', 'numberCell', null, null, null, null]);
-  
+
   rows.push(['  └ 현장 운영비', `${formatNumber(totals.fieldOpsExpenseTotal)}원`, '', '', '', '']);
   styleMap.push(['summaryLabel', 'numberCell', null, null, null, null]);
-  
+
   rows.push(['손익', `${formatNumber(totals.profit)}원`, '', '', '', '']);
   styleMap.push(['summaryLabel', 'summaryValueProfit', null, null, null, null]);
-  
+
   rows.push(['수익률', formatPercent(totals.profitRate), '', '', '', '']);
   styleMap.push(['summaryLabel', 'summaryValueProfit', null, null, null, null]);
-  
+
   rows.push(['', '', '', '', '', '']);
   styleMap.push([null, null, null, null, null, null]);
 
   // 매출 항목
   rows.push(['💰 매출 항목', '', '', '', '', '']);
-  styleMap.push(['salesSectionHeader', 'salesSectionHeader', 'salesSectionHeader', 'salesSectionHeader', 'salesSectionHeader', 'salesSectionHeader']);
-  
+  styleMap.push([
+    'salesSectionHeader',
+    'salesSectionHeader',
+    'salesSectionHeader',
+    'salesSectionHeader',
+    'salesSectionHeader',
+    'salesSectionHeader',
+  ]);
+
   rows.push(['항목명', '금액', '손익대비', '매출 내', '비고', '']);
   styleMap.push(['tableHeader', 'tableHeader', 'tableHeader', 'tableHeader', 'tableHeader', null]);
-  
+
   for (const item of salesItems) {
     const amount = Number(item.amount || 0);
-    const profitRatio = totals.profit ? ((amount / totals.profit) * 100) : 0;
-    const salesRatio = totals.salesTotal ? ((amount / totals.salesTotal) * 100) : 0;
+    const profitRatio = totals.profit ? (amount / totals.profit) * 100 : 0;
+    const salesRatio = totals.salesTotal ? (amount / totals.salesTotal) * 100 : 0;
     rows.push([
       item.name || '',
       `${formatNumber(amount)}원`,
@@ -264,20 +299,34 @@ export function exportIncomeStatementToExcel(data) {
     ]);
     styleMap.push(['cell', 'numberCell', 'percentCell', 'percentCell', 'cell', null]);
   }
-  
+
   // 매출 합계
   rows.push(['합계', `${formatNumber(totals.salesTotal)}원`, '', '', '', '']);
   styleMap.push(['totalRow', 'totalRow', 'totalRow', 'totalRow', 'totalRow', null]);
-  
+
   rows.push(['', '', '', '', '', '']);
   styleMap.push([null, null, null, null, null, null]);
 
   // 지출 항목 (변동비) - 중분류별로 그룹화
   rows.push(['📦 지출 - 변동비', '', '', '', '', '']);
-  styleMap.push(['expenseSectionHeader', 'expenseSectionHeader', 'expenseSectionHeader', 'expenseSectionHeader', 'expenseSectionHeader', 'expenseSectionHeader']);
-  
+  styleMap.push([
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+  ]);
+
   rows.push(['중분류', '항목명', '금액', '매출대비', '지출대비', '비고']);
-  styleMap.push(['tableHeader', 'tableHeader', 'tableHeader', 'tableHeader', 'tableHeader', 'tableHeader']);
+  styleMap.push([
+    'tableHeader',
+    'tableHeader',
+    'tableHeader',
+    'tableHeader',
+    'tableHeader',
+    'tableHeader',
+  ]);
 
   // 중분류별로 그룹화 (현장 운영비 제외)
   const categorizedExpenses = {};
@@ -296,8 +345,10 @@ export function exportIncomeStatementToExcel(data) {
     for (const item of items) {
       const amount = Number(item.amount || 0);
       categoryTotal += amount;
-      const salesRatio = totals.salesTotal ? ((amount / Number(header.contractAmount || totals.salesTotal)) * 100) : 0;
-      const expenseRatio = totals.expenseTotal ? ((amount / totals.expenseTotal) * 100) : 0;
+      const salesRatio = totals.salesTotal
+        ? (amount / Number(header.contractAmount || totals.salesTotal)) * 100
+        : 0;
+      const expenseRatio = totals.expenseTotal ? (amount / totals.expenseTotal) * 100 : 0;
 
       rows.push([
         isFirst ? category : '',
@@ -319,27 +370,43 @@ export function exportIncomeStatementToExcel(data) {
     }
 
     // 중분류 소계
-    const catSalesRatio = totals.salesTotal ? ((categoryTotal / Number(header.contractAmount || totals.salesTotal)) * 100) : 0;
-    const catExpenseRatio = totals.expenseTotal ? ((categoryTotal / totals.expenseTotal) * 100) : 0;
-    rows.push(['', `${category} 합계`, `${formatNumber(categoryTotal)}원`, formatPercent(catSalesRatio), formatPercent(catExpenseRatio), '']);
+    const catSalesRatio = totals.salesTotal
+      ? (categoryTotal / Number(header.contractAmount || totals.salesTotal)) * 100
+      : 0;
+    const catExpenseRatio = totals.expenseTotal ? (categoryTotal / totals.expenseTotal) * 100 : 0;
+    rows.push([
+      '',
+      `${category} 합계`,
+      `${formatNumber(categoryTotal)}원`,
+      formatPercent(catSalesRatio),
+      formatPercent(catExpenseRatio),
+      '',
+    ]);
     styleMap.push(['totalRow', 'totalRow', 'totalRow', 'totalRow', 'totalRow', 'totalRow']);
   }
-  
+
   // 변동비 총 합계
   rows.push(['변동비 합계', '', `${formatNumber(totals.variableExpenseTotal)}원`, '', '', '']);
   styleMap.push(['totalRow', 'totalRow', 'totalRow', 'totalRow', 'totalRow', 'totalRow']);
-  
+
   rows.push(['', '', '', '', '', '']);
   styleMap.push([null, null, null, null, null, null]);
 
   // 현장 운영비
-  const fieldOpsItems = expenseItems.filter(item => item.groupName === 'field_ops');
+  const fieldOpsItems = expenseItems.filter((item) => item.groupName === 'field_ops');
   rows.push(['🏗️ 지출 - 현장 운영비', '', '', '', '', '']);
-  styleMap.push(['expenseSectionHeader', 'expenseSectionHeader', 'expenseSectionHeader', 'expenseSectionHeader', 'expenseSectionHeader', 'expenseSectionHeader']);
-  
+  styleMap.push([
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+    'expenseSectionHeader',
+  ]);
+
   rows.push(['지출 종류', '일자', '상세 내용', '금액', '', '']);
   styleMap.push(['tableHeader', 'tableHeader', 'tableHeader', 'tableHeader', null, null]);
-  
+
   if (fieldOpsItems.length > 0) {
     for (const item of fieldOpsItems) {
       rows.push([
@@ -353,7 +420,7 @@ export function exportIncomeStatementToExcel(data) {
       styleMap.push(['cell', 'cell', 'cell', 'numberCell', null, null]);
     }
   }
-  
+
   rows.push(['', '', '합계', `${formatNumber(totals.fieldOpsExpenseTotal)}원`, '', '']);
   styleMap.push(['totalRow', 'totalRow', 'totalRow', 'totalRow', null, null]);
 
@@ -440,10 +507,16 @@ export function exportTimelineToExcel(site) {
   // 타이틀
   rows.push([site.name, '', '', '', '']);
   styleMap.push(['title', 'title', 'title', 'title', 'title']);
-  
-  rows.push([`출력일: ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '']);
+
+  rows.push([
+    `출력일: ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+    '',
+    '',
+    '',
+    '',
+  ]);
   styleMap.push(['subtitle', 'subtitle', 'subtitle', 'subtitle', 'subtitle']);
-  
+
   rows.push(['', '', '', '', '']);
   styleMap.push([null, null, null, null, null]);
 
@@ -508,13 +581,7 @@ export function exportTimelineToExcel(site) {
   }
 
   // 열 너비 설정
-  ws['!cols'] = [
-    { wch: 15 },
-    { wch: 20 },
-    { wch: 60 },
-    { wch: 12 },
-    { wch: 12 },
-  ];
+  ws['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 60 }, { wch: 12 }, { wch: 12 }];
 
   // 행 높이 설정
   ws['!rows'] = rows.map((_, i) => {
@@ -559,13 +626,17 @@ export function exportChecklistToExcel(site) {
   // 타이틀
   rows.push([site.name, '', '']);
   styleMap.push(['title', 'title', 'title']);
-  
+
   rows.push([`진행도: ${completedCount} / ${totalCount} 항목 완료 (${progress}%)`, '', '']);
   styleMap.push(['subtitle', 'subtitle', 'subtitle']);
-  
-  rows.push([`출력일: ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '']);
+
+  rows.push([
+    `출력일: ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+    '',
+    '',
+  ]);
   styleMap.push(['subtitle', 'subtitle', 'subtitle']);
-  
+
   rows.push(['', '', '']);
   styleMap.push([null, null, null]);
 
@@ -581,11 +652,7 @@ export function exportChecklistToExcel(site) {
       item.text || '',
       item.checked ? '✓ 완료' : '미완료',
     ]);
-    styleMap.push([
-      'cell',
-      'cell',
-      item.checked ? 'summaryValueProfit' : 'cell',
-    ]);
+    styleMap.push(['cell', 'cell', item.checked ? 'summaryValueProfit' : 'cell']);
   }
 
   // 워크시트 생성
@@ -603,11 +670,7 @@ export function exportChecklistToExcel(site) {
   }
 
   // 열 너비 설정
-  ws['!cols'] = [
-    { wch: 10 },
-    { wch: 80 },
-    { wch: 15 },
-  ];
+  ws['!cols'] = [{ wch: 10 }, { wch: 80 }, { wch: 15 }];
 
   // 행 높이 설정
   ws['!rows'] = rows.map((_, i) => {

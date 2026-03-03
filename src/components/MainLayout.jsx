@@ -14,9 +14,9 @@ import {
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import loginLogo from '../assets/images/login-logo.png';
+import { useUserStore } from '../lib/userStore';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { useUserStore } from '../lib/userStore';
 
 export default function MainLayout() {
   const navigate = useNavigate();

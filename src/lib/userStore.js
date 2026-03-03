@@ -1,7 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { FALLBACK_USERS, hasSupabaseEnv, STORAGE_KEYS } from './constants';
+import { FALLBACK_USERS, STORAGE_KEYS, hasSupabaseEnv } from './constants';
 import { supabase } from './supabase';
+
+const waitForAuthSession = async (maxAttempts = 10, delayMs = 80) => {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session) return session;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return null;
+};
 
 export const useUserStore = create(
   persist(
@@ -33,7 +44,7 @@ export const useUserStore = create(
 
             if (row?.user_id) {
               // app_users에 있는 사용자: Auth 로그인 후 user_id/group 사용
-              const { error: authError } = await supabase.auth.signInWithPassword({
+              const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email: emailTrim,
                 password,
               });
@@ -47,6 +58,15 @@ export const useUserStore = create(
                   error: `세션 설정 실패: ${msg}.${hint}`,
                 };
               }
+
+              const session = authData?.session ?? (await waitForAuthSession());
+              if (!session) {
+                return {
+                  success: false,
+                  error: '로그인 세션 초기화 중 문제가 발생했습니다. 다시 시도해 주세요.',
+                };
+              }
+
               await supabase.auth.updateUser({
                 data: { group: row.user_group || null },
               });
@@ -65,6 +85,14 @@ export const useUserStore = create(
               password,
             });
             if (!authError && authData?.user) {
+              const session = authData?.session ?? (await waitForAuthSession());
+              if (!session) {
+                return {
+                  success: false,
+                  error: '로그인 세션 초기화 중 문제가 발생했습니다. 다시 시도해 주세요.',
+                };
+              }
+
               const id = authData.user.email?.replace(/@.+$/, '') || emailTrim;
               const group = authData.user.user_metadata?.group ?? null;
               set({

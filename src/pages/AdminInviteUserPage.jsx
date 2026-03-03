@@ -52,7 +52,8 @@ export default function AdminInviteUserPage() {
 
       <h1 className="text-2xl font-bold text-foreground mb-2">사용자 초대</h1>
       <p className="text-muted-foreground mb-6">
-        초대할 이메일과 그룹을 선택한 뒤 초대 메일 보내기를 클릭하세요. 수신자가 메일의 링크를 통해 비밀번호를 설정하면 로그인할 수 있습니다.
+        초대할 이메일과 그룹을 선택한 뒤 초대 메일 보내기를 클릭하세요. 수신자가 메일의 링크를 통해
+        비밀번호를 설정하면 로그인할 수 있습니다.
       </p>
 
       <Card className="max-w-xl">
@@ -99,9 +100,20 @@ export default function AdminInviteUserPage() {
                   ))}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg
+                    className="h-4 w-4 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
                     <title>선택</title>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
@@ -109,7 +121,9 @@ export default function AdminInviteUserPage() {
             {message.text && (
               <p
                 className={`text-sm ${
-                  message.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-destructive'
+                  message.type === 'success'
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-destructive'
                 }`}
               >
                 {message.text}

@@ -80,7 +80,9 @@ export default {
         // app_users 테이블 행 수 (service_role로 RLS 우회 조회)
         let appUsersCount = null;
         try {
-          const { count } = await adminClient.from('app_users').select('*', { count: 'exact', head: true });
+          const { count } = await adminClient
+            .from('app_users')
+            .select('*', { count: 'exact', head: true });
           appUsersCount = count ?? null;
         } catch {
           // app_users 없거나 권한 이슈 시 무시
@@ -107,10 +109,7 @@ export default {
 
       return jsonResponse({ error: 'Method not allowed' }, 405);
     } catch (e) {
-      return jsonResponse(
-        { error: e?.message ?? 'Unknown error' },
-        500
-      );
+      return jsonResponse({ error: e?.message ?? 'Unknown error' }, 500);
     }
   },
 };

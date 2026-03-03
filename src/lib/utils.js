@@ -67,7 +67,8 @@ export const calculateSiteProgress = (site, weights = { timeline: 0.7, checklist
   const checklistCompleted = site.checklist?.filter((item) => item.checked).length || 0;
   const checklistProgress = checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
 
-  const overallProgress = timelineProgress * weights.timeline + checklistProgress * weights.checklist;
+  const overallProgress =
+    timelineProgress * weights.timeline + checklistProgress * weights.checklist;
 
   return {
     timeline: Math.round(timelineProgress),

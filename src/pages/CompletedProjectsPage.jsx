@@ -101,9 +101,7 @@ export default function CompletedProjectsPage() {
                     type="button"
                     className="py-2.5 rounded-md bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-sm font-medium transition-colors"
                     onClick={() => navigate(`/site/${site.id}/checklist`)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' && navigate(`/site/${site.id}/checklist`)
-                    }
+                    onKeyDown={(e) => e.key === 'Enter' && navigate(`/site/${site.id}/checklist`)}
                   >
                     체크리스트
                   </button>

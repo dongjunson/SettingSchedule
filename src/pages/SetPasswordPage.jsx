@@ -18,7 +18,9 @@ export default function SetPasswordPage() {
   // 현재 세션에서 사용자 정보 가져오기
   useEffect(() => {
     const fetchUserInfo = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.user) {
         setUserInfo({
           email: session.user.email || '',
