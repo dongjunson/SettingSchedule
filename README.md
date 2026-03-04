@@ -60,13 +60,21 @@ npm run dev
 
 ```bash
 npm run dev        # 개발 서버
-npm run build      # 프로덕션 빌드
+npm run build      # 프로덕션 빌드 (빌드 전에 changelog 자동 생성)
 npm run preview    # 빌드 결과 로컬 확인
 npm run lint       # Biome lint
 npm run lint:fix   # Biome lint 자동 수정
 npm run format     # Biome format
 npm run check      # Biome 종합 검사
 npm run check:fix  # Biome 검사 자동 수정
+```
+
+### 변경 이력 (Changelog)
+
+앱 우측 상단 변경 이력 모달에 표시할 데이터는 `git log`를 기반으로 생성합니다. 수동으로 갱신할 때는 다음 명령을 실행한 뒤 `public/changelog.json`이 생성됩니다. 로컬/프로덕션 공통으로 `npm run build` 시 자동 실행되며, Vercel 배포 시에도 `vercel.json`의 `buildCommand`에 포함되어 빌드할 때마다 자동 생성됩니다.
+
+```bash
+node scripts/generate-changelog.js
 ```
 
 ## 라우트 구조

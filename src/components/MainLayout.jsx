@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import loginLogo from '../assets/images/login-logo.png';
 import { useUserStore } from '../lib/userStore';
+import ChangelogModal from './ChangelogModal';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
@@ -152,6 +153,7 @@ export default function MainLayout() {
               </div>
             </div>
 
+            <ChangelogModal />
             <Outlet />
           </div>
         </div>

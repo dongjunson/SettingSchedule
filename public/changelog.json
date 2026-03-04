@@ -1,0 +1,305 @@
+{
+  "generatedAt": "2026-03-04T12:07:32.041Z",
+  "entries": [
+    {
+      "hash": "13debb1",
+      "subject": "feat: ui 변경",
+      "date": "2026-03-04 20:55:42 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "1be39e7",
+      "subject": "feat: 사이트 주소 바로가기",
+      "date": "2026-03-04 16:35:46 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "31576f0",
+      "subject": "feat: npm run check",
+      "date": "2026-03-03 14:52:52 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "168c90f",
+      "subject": "feat: 사용자 관리 메뉴 추가",
+      "date": "2026-02-20 09:54:26 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "433c919",
+      "subject": "feat: 사용자 삭제",
+      "date": "2026-02-20 09:36:35 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "c046816",
+      "subject": "feat: 사용자 삭제",
+      "date": "2026-02-20 09:11:31 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "09edbec",
+      "subject": "feat: 사용자 삭제 기능 추가",
+      "date": "2026-02-20 09:06:10 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "ac1ef63",
+      "subject": "feat: 리팩토링 진행 완료",
+      "date": "2026-02-10 17:41:45 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "434cd6d",
+      "subject": "feat: role 제거 & 아이디 노출로 개선",
+      "date": "2026-02-10 16:55:38 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "b2593eb",
+      "subject": "feat: refactor 정리",
+      "date": "2026-02-04 13:00:31 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "05aadab",
+      "subject": "feat: 반응형 제거",
+      "date": "2026-02-04 12:46:50 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "15fb94e",
+      "subject": "feat: md 파일 업데이트",
+      "date": "2026-02-04 12:05:22 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "a6a4f42",
+      "subject": "feat: 탭 영역 디자인 개선",
+      "date": "2026-02-03 16:49:22 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "edf2fae",
+      "subject": "feat: 숫자 입력시 콤마 처리",
+      "date": "2026-02-03 16:47:19 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "2848b67",
+      "subject": "feat: 초기 세팅되는 option 들 초기화",
+      "date": "2026-02-03 16:43:13 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "af8d4fb",
+      "subject": "placeholder 처리",
+      "date": "2026-02-03 16:40:01 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "c1fa969",
+      "subject": "feat: 프로젝트 관리에서 이름 수정",
+      "date": "2026-02-03 16:30:09 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "9eb1e6f",
+      "subject": "feat: excel 저장",
+      "date": "2026-02-03 16:15:13 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "54d557e",
+      "subject": "feat: 손익 계산서",
+      "date": "2026-02-03 16:03:45 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "94855b5",
+      "subject": "feat: version 0.8",
+      "date": "2026-02-03 13:49:31 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "0817c5d",
+      "subject": "feat: 비번 세팅",
+      "date": "2026-02-03 13:18:28 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "c91e470",
+      "subject": "feat: 초대 메일",
+      "date": "2026-02-03 13:04:26 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "ed483a7",
+      "subject": "fork: email 초대",
+      "date": "2026-02-03 12:54:40 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "ee10937",
+      "subject": "feat: 초대 메일 보내기",
+      "date": "2026-02-03 12:43:01 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "3c2137b",
+      "subject": "feat: 사용자 초대",
+      "date": "2026-02-03 12:30:39 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "8340002",
+      "subject": "feat: 구축중 구축완료 손익계산서 메뉴 추가",
+      "date": "2026-02-03 11:58:59 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "7f1653d",
+      "subject": "feat: 신규 사업소 추가 버그 개선",
+      "date": "2026-01-27 12:00:06 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "60b1c9e",
+      "subject": "feat: patch list",
+      "date": "2026-01-22 17:32:44 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "6503a7e",
+      "subject": "feat: chart 개선",
+      "date": "2026-01-22 17:28:42 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "c151eab",
+      "subject": "feat: query cache 화 작업 완료",
+      "date": "2026-01-22 17:25:24 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "9d1a803",
+      "subject": "feat: logo update",
+      "date": "2026-01-21 15:11:52 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "e47cb83",
+      "subject": "feat: logo update",
+      "date": "2026-01-21 15:10:38 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "ec65954",
+      "subject": "feat: logo update",
+      "date": "2026-01-21 15:08:10 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "b60ac89",
+      "subject": "feat: logo branding",
+      "date": "2026-01-21 15:04:46 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "99a00c8",
+      "subject": "feat: JRI -> SAFEROBO 변경",
+      "date": "2026-01-21 14:59:32 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "2823761",
+      "subject": "feat: timelinepage",
+      "date": "2026-01-21 14:14:22 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "66d0e57",
+      "subject": "feat: 메인 업데이트",
+      "date": "2026-01-21 14:09:29 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "283f140",
+      "subject": "feat: V0.8 개발 완료",
+      "date": "2026-01-21 12:09:47 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "e54582b",
+      "subject": "feat: 수원 하수도 사업소 추가",
+      "date": "2026-01-12 10:03:37 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "b5564d2",
+      "subject": "feat: error 수정",
+      "date": "2025-12-17 15:18:48 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "27beafd",
+      "subject": "feat: Biome 세팅 & 로그인 화면 추가",
+      "date": "2025-12-17 10:49:40 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "554bafb",
+      "subject": "feat: 버그 수정",
+      "date": "2025-12-16 13:32:56 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "af2524d",
+      "subject": "feat: excel 출력 & 시작날짜 & 종료날짜",
+      "date": "2025-12-16 13:13:50 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "d8eddc1",
+      "subject": "feat: localStroge 버전",
+      "date": "2025-12-15 16:51:42 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "7ace8ea",
+      "subject": "feat: process 업데이트",
+      "date": "2025-12-15 16:06:59 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "731120c",
+      "subject": "feat: 초기 테스트 버전",
+      "date": "2025-12-12 16:14:06 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "b0ede51",
+      "subject": "feat: mobile 대응",
+      "date": "2025-12-11 12:33:24 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "4163a22",
+      "subject": "feat: vercel 배포용",
+      "date": "2025-12-11 12:03:45 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "d08e199",
+      "subject": "feat: init",
+      "date": "2025-12-11 11:55:53 +0900",
+      "author": "marx"
+    },
+    {
+      "hash": "4333235",
+      "subject": "feat: init",
+      "date": "2025-12-09 15:24:08 +0900",
+      "author": "marx"
+    }
+  ]
+}
