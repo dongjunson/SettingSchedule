@@ -1,4 +1,4 @@
-import { ArrowRight, Building2, Check, CheckCircle2, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowRight, Building2, Check, CheckCircle2, ExternalLink, Pencil, Trash2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProgressPieChart } from '../components/ProgressChart';
@@ -240,21 +240,35 @@ export default function SiteSelection() {
                       </div>
                     </div>
 
-                    {isAdmin && !isEditing && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 -mr-2 -mt-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                        disabled={deletingSiteId === site.id}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDeleteSite(site);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {site.siteUrl && (
+                        <a
+                          href={site.siteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          바로가기
+                        </a>
+                      )}
+                      {isAdmin && !isEditing && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          disabled={deletingSiteId === site.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDeleteSite(site);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
 

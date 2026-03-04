@@ -1,4 +1,4 @@
-import { Building2, CheckCircle2 } from 'lucide-react';
+import { Building2, CheckCircle2, ExternalLink } from 'lucide-react';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProgressPieChart } from '../components/ProgressChart';
@@ -59,10 +59,23 @@ export default function CompletedProjectsPage() {
                       </CardDescription>
                     </div>
                   </div>
-                  <span className="flex-shrink-0 inline-flex items-center gap-1 bg-slate-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm h-6">
-                    <CheckCircle2 className="h-3 w-3" />
-                    구축완료
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {site.siteUrl && (
+                      <a
+                        href={site.siteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-500/10 text-slate-700 hover:bg-slate-500/20 border border-slate-400/30 transition-colors"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        바로가기
+                      </a>
+                    )}
+                    <span className="inline-flex items-center gap-1 bg-slate-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm h-6">
+                      <CheckCircle2 className="h-3 w-3" />
+                      구축완료
+                    </span>
+                  </div>
                 </div>
               </CardHeader>
 

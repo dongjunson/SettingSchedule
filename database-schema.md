@@ -10,6 +10,7 @@ Project sites (사업소).
 | `id` | `text` | **Primary Key**. Site identifier (e.g., 'anyang-bakdal') |
 | `name` | `text` | Display name of the site (e.g., '안양 박달 사업소') |
 | `stage` | `text` | Project stage: `null` = hidden from "구축중 프로젝트" list, `'구축중'` = shown there |
+| `site_url` | `text` | 프로젝트별 사이트 주소 (풀 URL, 예: `http://106.246.226.26:48000/`). nullable. |
 | `created_at` | `timestamptz` | Creation timestamp (default: `now()`) |
 
 ### `timeline_items`
@@ -114,6 +115,7 @@ CREATE TABLE sites (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   stage TEXT,
+  site_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -246,4 +248,12 @@ CREATE POLICY "Deny all access to app_users" ON app_users FOR ALL USING (false) 
 REVOKE ALL ON TABLE app_users FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION pms_login(TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION pms_login_by_email(TEXT, TEXT) TO anon, authenticated;
+```
+
+### Migration: sites에 site_url 추가 (기존 DB)
+
+이미 `sites` 테이블이 있는 경우, Supabase SQL Editor에서 아래만 실행하면 됩니다.
+
+```sql
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS site_url TEXT;
 ```

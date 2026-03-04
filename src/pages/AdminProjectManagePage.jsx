@@ -4,6 +4,7 @@ import {
   Check,
   CheckCircle,
   EyeOff,
+  Link2,
   Loader2,
   Pencil,
   Trash2,
@@ -61,6 +62,13 @@ function StageSection({
   onSaveEdit,
   onEditNameChange,
   savingNameSiteId,
+  editingSiteUrlId,
+  editingSiteUrl,
+  onStartEditUrl,
+  onCancelEditUrl,
+  onSaveSiteUrl,
+  onEditSiteUrlChange,
+  savingSiteUrlId,
 }) {
   const navigate = useNavigate();
 
@@ -136,6 +144,69 @@ function StageSection({
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground truncate">{site.id}</p>
+                    <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                      {editingSiteUrlId === site.id ? (
+                        <>
+                          <Input
+                            value={editingSiteUrl}
+                            onChange={(e) => onEditSiteUrlChange(e.target.value)}
+                            placeholder="http://106.246.226.26:48000/"
+                            className="h-8 text-xs font-mono max-w-md"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') onSaveSiteUrl(site);
+                              if (e.key === 'Escape') onCancelEditUrl();
+                            }}
+                            disabled={savingSiteUrlId === site.id}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-green-600 hover:bg-green-50"
+                            onClick={() => onSaveSiteUrl(site)}
+                            disabled={savingSiteUrlId === site.id}
+                          >
+                            {savingSiteUrlId === site.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground"
+                            onClick={onCancelEditUrl}
+                            disabled={savingSiteUrlId === site.id}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      ) : (
+                        <span className="group/url flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Link2 className="h-3 w-3 shrink-0" />
+                          {site.siteUrl ? (
+                            <a
+                              href={site.siteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="truncate max-w-xs hover:text-primary hover:underline"
+                            >
+                              {site.siteUrl}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground/80">사이트 주소 미설정</span>
+                          )}
+                          <button
+                            type="button"
+                            className="p-0.5 rounded hover:bg-muted opacity-0 group-hover/url:opacity-100 transition-opacity"
+                            onClick={() => onStartEditUrl(site)}
+                            title="사이트 주소 변경"
+                          >
+                            <Pencil className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                          </button>
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <span className="text-muted-foreground/60 text-xs">·</span>
                   <button
@@ -214,6 +285,9 @@ export default function AdminProjectManagePage() {
   const [editingSiteId, setEditingSiteId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [savingNameSiteId, setSavingNameSiteId] = useState(null);
+  const [editingSiteUrlId, setEditingSiteUrlId] = useState(null);
+  const [editingSiteUrl, setEditingSiteUrl] = useState('');
+  const [savingSiteUrlId, setSavingSiteUrlId] = useState(null);
 
   const hiddenSites = sites.filter(
     (s) => s.stage !== STAGE.IN_PROGRESS && s.stage !== STAGE.COMPLETED
@@ -296,6 +370,37 @@ export default function AdminProjectManagePage() {
     }
   };
 
+  const handleStartEditUrl = (site) => {
+    setEditingSiteUrlId(site.id);
+    setEditingSiteUrl(site.siteUrl ?? '');
+  };
+
+  const handleCancelEditUrl = () => {
+    setEditingSiteUrlId(null);
+    setEditingSiteUrl('');
+  };
+
+  const handleSaveSiteUrl = async (site) => {
+    const trimmed = editingSiteUrl.trim();
+    if (trimmed === (site.siteUrl ?? '')) {
+      handleCancelEditUrl();
+      return;
+    }
+    setSavingSiteUrlId(site.id);
+    try {
+      await updateSite({ siteId: site.id, updates: { siteUrl: trimmed || null } });
+      handleCancelEditUrl();
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: '변경 실패',
+        description: err?.message || '사이트 주소 변경에 실패했습니다.',
+      });
+    } finally {
+      setSavingSiteUrlId(null);
+    }
+  };
+
   return (
     <div className="py-6">
       <Button variant="ghost" onClick={() => navigate('/')} className="mb-6">
@@ -327,6 +432,13 @@ export default function AdminProjectManagePage() {
             onSaveEdit={handleSaveEdit}
             onEditNameChange={setEditingName}
             savingNameSiteId={savingNameSiteId}
+            editingSiteUrlId={editingSiteUrlId}
+            editingSiteUrl={editingSiteUrl}
+            onStartEditUrl={handleStartEditUrl}
+            onCancelEditUrl={handleCancelEditUrl}
+            onSaveSiteUrl={handleSaveSiteUrl}
+            onEditSiteUrlChange={setEditingSiteUrl}
+            savingSiteUrlId={savingSiteUrlId}
           />
           <StageSection
             title="구축중"
@@ -340,6 +452,13 @@ export default function AdminProjectManagePage() {
             onSaveEdit={handleSaveEdit}
             onEditNameChange={setEditingName}
             savingNameSiteId={savingNameSiteId}
+            editingSiteUrlId={editingSiteUrlId}
+            editingSiteUrl={editingSiteUrl}
+            onStartEditUrl={handleStartEditUrl}
+            onCancelEditUrl={handleCancelEditUrl}
+            onSaveSiteUrl={handleSaveSiteUrl}
+            onEditSiteUrlChange={setEditingSiteUrl}
+            savingSiteUrlId={savingSiteUrlId}
           />
           <StageSection
             title="구축완료"
@@ -353,6 +472,13 @@ export default function AdminProjectManagePage() {
             onSaveEdit={handleSaveEdit}
             onEditNameChange={setEditingName}
             savingNameSiteId={savingNameSiteId}
+            editingSiteUrlId={editingSiteUrlId}
+            editingSiteUrl={editingSiteUrl}
+            onStartEditUrl={handleStartEditUrl}
+            onCancelEditUrl={handleCancelEditUrl}
+            onSaveSiteUrl={handleSaveSiteUrl}
+            onEditSiteUrlChange={setEditingSiteUrl}
+            savingSiteUrlId={savingSiteUrlId}
           />
         </div>
       )}

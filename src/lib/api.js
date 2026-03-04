@@ -67,6 +67,7 @@ const mapSiteRowToSite = (row) => ({
   id: row.id,
   name: row.name,
   stage: row.stage ?? null,
+  siteUrl: row.site_url ?? null,
   createdAt: row.created_at ?? null,
   timeline: Array.isArray(row.timeline_items) ? row.timeline_items.map(mapTimelineRowToItem) : [],
   checklist: Array.isArray(row.checklist_items)
@@ -320,6 +321,9 @@ export const updateSiteOnServer = async (siteId, updates) => {
   if ('stage' in updates) {
     payload.stage = updates.stage == null ? null : String(updates.stage);
   }
+  if ('siteUrl' in updates) {
+    payload.site_url = updates.siteUrl == null || updates.siteUrl === '' ? null : String(updates.siteUrl).trim();
+  }
 
   if (Object.keys(payload).length === 0) {
     return null;
@@ -337,7 +341,12 @@ export const updateSiteOnServer = async (siteId, updates) => {
     throw error;
   }
 
-  return { id: data.id, name: data.name, stage: data.stage ?? null };
+  return {
+    id: data.id,
+    name: data.name,
+    stage: data.stage ?? null,
+    siteUrl: data.site_url ?? null,
+  };
 };
 
 export const repairSiteTimelineOnServer = async (siteId, timelineTemplateItems) => {
