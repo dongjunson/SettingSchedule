@@ -1,5 +1,5 @@
-import { ArrowRight, Building2, Check, CheckCircle2, ExternalLink, Pencil, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowRight, Check, CheckCircle2, ExternalLink, Pencil, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProgressPieChart } from '../components/ProgressChart';
 import { LoadingSpinner } from '../components/common';
@@ -9,10 +9,10 @@ import { toast } from '../hooks/use-toast';
 import {
   calculateSiteProgress,
   useCreateSite,
-  useDeleteSite,
   useSites,
   useUpdateSite,
 } from '../hooks/useQueries';
+import { getHealthCheck } from '../lib/api';
 import { STAGE, USER_GROUPS } from '../lib/constants';
 import { useUserStore } from '../lib/userStore';
 
@@ -25,7 +25,6 @@ export default function SiteSelection() {
   // 새로고침 시에도 캐시가 없으면 isLoading이 true가 되지만,
   // refetchOnMount: false 설정으로 staleTime 내에서는 불필요한 refetch 방지
   const loading = isLoading && !sites.length;
-  const { mutateAsync: deleteSite } = useDeleteSite();
   const { mutateAsync: updateSite, isPending: updating } = useUpdateSite();
 
   // 사용자 스토어
@@ -33,32 +32,11 @@ export default function SiteSelection() {
 
   const isAdmin = getGroup() === USER_GROUPS.ADMIN;
 
-  const [deletingSiteId, setDeletingSiteId] = useState(null);
-
   // 수정 모드 상태
   const [editingSiteId, setEditingSiteId] = useState(null);
   const [editingName, setEditingName] = useState('');
-
-  const handleDeleteSite = async (site) => {
-    if (!site?.id) return;
-    const ok = window.confirm(
-      `'${site.name}' 사업소를 삭제할까요?\n(타임라인/체크리스트 데이터도 함께 삭제됩니다)`
-    );
-    if (!ok) return;
-
-    setDeletingSiteId(site.id);
-    try {
-      await deleteSite(site.id);
-    } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: '삭제 실패',
-        description: err?.message || '사업소 삭제에 실패했습니다.',
-      });
-    } finally {
-      setDeletingSiteId(null);
-    }
-  };
+  // 사이트 URL 헬스체크 결과 (true=연결됨, false=실패, null=확인중)
+  const [healthBySiteId, setHealthBySiteId] = useState(() => ({}));
 
   const handleStartEdit = (site) => {
     setEditingSiteId(site.id);
@@ -84,6 +62,19 @@ export default function SiteSelection() {
       });
     }
   };
+
+  // 사이트 URL이 있는 프로젝트에 대해 헬스체크
+  useEffect(() => {
+    const withUrl = sites.filter((s) => s.siteUrl?.trim());
+    if (withUrl.length === 0) return;
+    let cancelled = false;
+    for (const site of withUrl) {
+      getHealthCheck(site.siteUrl).then((ok) => {
+        if (!cancelled) setHealthBySiteId((prev) => ({ ...prev, [site.id]: ok }));
+      });
+    }
+    return () => { cancelled = true; };
+  }, [sites]);
 
   // 구축중 단계 프로젝트만 노출
   const sitesWithProgress = useMemo(() => {
@@ -130,11 +121,11 @@ export default function SiteSelection() {
             return (
               <Card
                 key={site.id}
-                className={`group relative overflow-hidden transition-all duration-200 cursor-pointer
+                className={`group relative overflow-hidden transition-all duration-200 cursor-pointer rounded-xl
                     ${
                       isCompleted
-                        ? 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:shadow-md'
-                        : 'border-border/60 bg-card hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10'
+                        ? 'border-slate-200 bg-slate-50/80 hover:border-slate-300 hover:shadow-md'
+                        : 'border-border/50 bg-card hover:border-primary/40 hover:shadow-md hover:shadow-primary/5'
                     }
                     shadow-sm
                   `}
@@ -149,24 +140,10 @@ export default function SiteSelection() {
                   </div>
                 )}
 
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-3 pt-5 px-5">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1 min-w-0">
-                      <div
-                        className={`
-                          flex-shrink-0 p-3 rounded-xl
-                          ${
-                            isCompleted
-                              ? 'bg-slate-200 text-slate-500'
-                              : 'bg-muted/50 text-foreground group-hover:bg-primary/10 group-hover:text-primary'
-                          }
-                          transition-colors duration-200
-                        `}
-                      >
-                        <Building2 className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1 min-w-0 pt-1">
-                        {isEditing ? (
+                    <div className="flex-1 min-w-0">
+                      {isEditing ? (
                           <div className="flex items-center gap-2">
                             <input
                               ref={(el) => el?.focus()}
@@ -229,78 +206,81 @@ export default function SiteSelection() {
                               )}
                             </div>
                             <CardDescription
-                              className={`text-xs truncate mt-1 ${isCompleted ? 'text-slate-500' : ''}`}
+                              className={`text-xs truncate mt-0.5 ${isCompleted ? 'text-slate-500' : 'text-muted-foreground'}`}
                             >
                               {isCompleted
                                 ? '모든 작업이 완료되었습니다'
                                 : '타임라인 및 체크리스트 관리'}
                             </CardDescription>
+                            <p className="text-[11px] text-muted-foreground/80 truncate mt-1">{site.id}</p>
                           </>
                         )}
-                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       {site.siteUrl && (
-                        <a
-                          href={site.siteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          바로가기
-                        </a>
-                      )}
-                      {isAdmin && !isEditing && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          disabled={deletingSiteId === site.id}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDeleteSite(site);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <span
+                            className="shrink-0 w-2.5 h-2.5 rounded-full border border-white shadow-sm"
+                            title={
+                              healthBySiteId[site.id] === true
+                                ? '사이트 연결됨'
+                                : healthBySiteId[site.id] === false
+                                  ? '연결 실패'
+                                  : '확인 중...'
+                            }
+                            style={{
+                              backgroundColor:
+                                healthBySiteId[site.id] === true
+                                  ? 'rgb(34, 197, 94)'
+                                  : healthBySiteId[site.id] === false
+                                    ? 'rgb(148, 163, 184)'
+                                    : 'rgb(203, 213, 225)',
+                            }}
+                          />
+                          <a
+                            href={site.siteUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            바로가기
+                          </a>
+                        </>
                       )}
                     </div>
                   </div>
                 </CardHeader>
 
-                <CardContent>
+                <CardContent className="px-5 pb-5 pt-0">
                   <div className="space-y-4">
-                    {/* Main Stats Row */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-xs font-medium text-muted-foreground mb-1">
-                          전체 진행도
+                    {!isCompleted && (
+                      <div className="flex items-center justify-between min-h-[72px]">
+                        <div className="flex flex-col justify-center">
+                          <div className="text-xs font-medium text-muted-foreground mb-1">
+                            전체 진행도
+                          </div>
+                          <div className="text-5xl font-bold text-primary tabular-nums">
+                            {site.progress.overall}%
+                          </div>
                         </div>
-                        <div
-                          className={`text-3xl font-bold ${isCompleted ? 'text-slate-500' : 'text-primary'}`}
-                        >
-                          {site.progress.overall}%
-                        </div>
+                        <ProgressPieChart
+                          value={site.progress.overall}
+                          name="전체"
+                          color={cardColor}
+                          workingValue={
+                            site.progress.total
+                              ? (site.progress.working / site.progress.total) * 100 * 0.7
+                              : 0
+                          }
+                        />
                       </div>
-                      <ProgressPieChart
-                        value={site.progress.overall}
-                        name="전체"
-                        color={cardColor}
-                        workingValue={
-                          site.progress.total
-                            ? (site.progress.working / site.progress.total) * 100 * 0.7
-                            : 0
-                        }
-                      />
-                    </div>
+                    )}
 
-                    {/* Detailed Stats - 구분선으로 분리 */}
                     <div
-                      className={`flex items-center justify-between pt-3 border-t ${isCompleted ? 'border-slate-200' : 'border-border/40'}`}
+                      className={`flex items-center justify-between ${isCompleted ? 'pt-0' : 'pt-3 border-t border-border/40'}`}
                     >
                       <div className="text-center flex-1">
                         <div
@@ -348,8 +328,8 @@ export default function SiteSelection() {
 
                     <Button
                       onClick={() => navigate(`/site/${site.id}`)}
-                      className={`w-full ${isCompleted ? 'bg-slate-400 text-white hover:bg-slate-500' : ''}`}
-                      variant={isCompleted ? 'default' : 'default'}
+                      className={`w-full rounded-lg h-11 font-medium ${isCompleted ? 'bg-slate-500 text-white hover:bg-slate-600' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+                      variant="default"
                     >
                       <span className="flex items-center justify-center gap-2">
                         프로젝트 열기

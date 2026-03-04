@@ -652,4 +652,21 @@ export const deleteAuthUser = async (userId) => {
   }
 };
 
+/**
+ * 사이트 URL 헬스체크 (서버에서 HEAD 요청 후 결과 반환)
+ * @param {string} siteUrl - 풀 URL (http/https)
+ * @returns {Promise<boolean>} 연결 가능 시 true
+ */
+export const getHealthCheck = async (siteUrl) => {
+  const url = (siteUrl || '').toString().trim();
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) return false;
+  try {
+    const res = await fetch(`/api/health-check?url=${encodeURIComponent(url)}`);
+    const data = await res.json().catch(() => ({}));
+    return Boolean(data?.ok);
+  } catch {
+    return false;
+  }
+};
+
 export default api;

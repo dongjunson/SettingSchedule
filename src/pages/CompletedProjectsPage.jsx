@@ -1,15 +1,16 @@
-import { Building2, CheckCircle2, ExternalLink } from 'lucide-react';
-import { useMemo } from 'react';
+import { CheckCircle2, ExternalLink } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ProgressPieChart } from '../components/ProgressChart';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { calculateSiteProgress, useSites } from '../hooks/useQueries';
+import { getHealthCheck } from '../lib/api';
 import { STAGE } from '../lib/constants';
 
 export default function CompletedProjectsPage() {
   const navigate = useNavigate();
   const { data: sites = [], isLoading } = useSites();
   const loading = isLoading && !sites.length;
+  const [healthBySiteId, setHealthBySiteId] = useState(() => ({}));
 
   const completedSites = useMemo(() => {
     const filtered = sites.filter((s) => s.stage === STAGE.COMPLETED);
@@ -18,6 +19,18 @@ export default function CompletedProjectsPage() {
       progress: calculateSiteProgress(site),
     }));
   }, [sites]);
+
+  useEffect(() => {
+    const withUrl = completedSites.filter((s) => s.siteUrl?.trim());
+    if (withUrl.length === 0) return;
+    let cancelled = false;
+    for (const site of withUrl) {
+      getHealthCheck(site.siteUrl).then((ok) => {
+        if (!cancelled) setHealthBySiteId((prev) => ({ ...prev, [site.id]: ok }));
+      });
+    }
+    return () => { cancelled = true; };
+  }, [completedSites]);
 
   return (
     <div className="mb-8">
@@ -42,61 +55,57 @@ export default function CompletedProjectsPage() {
           {completedSites.map((site) => (
             <Card
               key={site.id}
-              className="group overflow-hidden border-slate-300 bg-slate-50 hover:border-slate-400 hover:shadow-md shadow-sm transition-all duration-200"
+              className="group overflow-hidden rounded-xl border-slate-200 bg-slate-50/80 hover:border-slate-300 hover:shadow-md shadow-sm transition-all duration-200"
             >
-              <CardHeader className="pb-2 pt-4 px-4">
-                <div className="flex items-start justify-between gap-3 min-h-[2.25rem]">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="flex-shrink-0 p-2.5 rounded-lg bg-slate-200/80 text-slate-600 h-10 w-10 flex items-center justify-center">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="text-base font-bold truncate leading-tight text-slate-700">
-                        {site.name}
-                      </CardTitle>
-                      <CardDescription className="text-xs text-slate-500 mt-0.5">
-                        전체 진행도 {site.progress.overall}%
-                      </CardDescription>
-                    </div>
+              <CardHeader className="pb-2 pt-5 px-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-base font-bold truncate leading-tight text-slate-700">
+                      {site.name}
+                    </CardTitle>
+                    <p className="text-[11px] text-slate-400 truncate mt-1">{site.id}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {site.siteUrl && (
-                      <a
-                        href={site.siteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-500/10 text-slate-700 hover:bg-slate-500/20 border border-slate-400/30 transition-colors"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        바로가기
-                      </a>
+                      <>
+                        <span
+                          className="shrink-0 w-2.5 h-2.5 rounded-full border border-white shadow-sm"
+                          title={
+                            healthBySiteId[site.id] === true
+                              ? '사이트 연결됨'
+                              : healthBySiteId[site.id] === false
+                                ? '연결 실패'
+                                : '확인 중...'
+                          }
+                          style={{
+                            backgroundColor:
+                              healthBySiteId[site.id] === true
+                                ? 'rgb(34, 197, 94)'
+                                : healthBySiteId[site.id] === false
+                                  ? 'rgb(148, 163, 184)'
+                                  : 'rgb(203, 213, 225)',
+                          }}
+                        />
+                        <a
+                          href={site.siteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-500/10 text-slate-700 hover:bg-slate-500/20 border border-slate-400/30 transition-colors"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          바로가기
+                        </a>
+                      </>
                     )}
-                    <span className="inline-flex items-center gap-1 bg-slate-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm h-6">
-                      <CheckCircle2 className="h-3 w-3" />
+                    <span className="inline-flex items-center justify-center gap-1.5 bg-slate-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm h-7 min-h-[1.75rem] leading-none">
+                      <CheckCircle2 className="h-3 w-3 shrink-0" />
                       구축완료
                     </span>
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-0 pb-4 px-4">
-                <div className="flex items-center justify-between gap-4 mb-4 min-h-[5rem]">
-                  <div className="text-2xl font-bold text-slate-600 shrink-0">
-                    {site.progress.overall}%
-                  </div>
-                  <div className="w-20 h-20 shrink-0 overflow-hidden flex items-center justify-center">
-                    <ProgressPieChart
-                      value={site.progress.overall}
-                      name="전체"
-                      color="rgb(100, 116, 139)"
-                      workingValue={
-                        site.progress.total
-                          ? (site.progress.working / site.progress.total) * 100 * 0.7
-                          : 0
-                      }
-                    />
-                  </div>
-                </div>
+              <CardContent className="pt-0 pb-5 px-5">
                 <div
                   className="grid grid-cols-2 gap-2"
                   onClick={(e) => e.stopPropagation()}
@@ -104,7 +113,7 @@ export default function CompletedProjectsPage() {
                 >
                   <button
                     type="button"
-                    className="py-2.5 rounded-md bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-sm font-medium transition-colors"
+                    className="py-2.5 rounded-lg bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-sm font-medium transition-colors"
                     onClick={() => navigate(`/site/${site.id}`)}
                     onKeyDown={(e) => e.key === 'Enter' && navigate(`/site/${site.id}`)}
                   >
@@ -112,7 +121,7 @@ export default function CompletedProjectsPage() {
                   </button>
                   <button
                     type="button"
-                    className="py-2.5 rounded-md bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-sm font-medium transition-colors"
+                    className="py-2.5 rounded-lg bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-sm font-medium transition-colors"
                     onClick={() => navigate(`/site/${site.id}/checklist`)}
                     onKeyDown={(e) => e.key === 'Enter' && navigate(`/site/${site.id}/checklist`)}
                   >

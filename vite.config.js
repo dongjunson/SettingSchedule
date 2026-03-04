@@ -29,6 +29,10 @@ export default defineConfig(({ mode }) => {
             target: vercelAppUrl.replace(/\/$/, ''),
             changeOrigin: true,
           },
+          '/api/health-check': {
+            target: vercelAppUrl.replace(/\/$/, ''),
+            changeOrigin: true,
+          },
         }),
       },
     },
